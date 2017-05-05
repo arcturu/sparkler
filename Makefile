@@ -11,10 +11,10 @@ all: $(TARGET)
 
 $(ODIR)/%.o: $(SDIR)/%.cc
 	test -d $(ODIR) || mkdir $(ODIR)
-	$(CXX) $(CXXFLAGS) -o $@ -c $<
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 $(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS) $(LIBDIRS)
 
 clean:
 	rm -rf build sparkler
