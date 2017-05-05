@@ -44,7 +44,8 @@ Geometry ParseObj(const char *path) {
     } else if (command == "vn") {
       double x, y, z;
       sline >> x >> y >> z;
-      geo.ns.emplace_back(x, y, z);
+      Vector3d n(x, y, z);
+      geo.ns.push_back(n.normalize());
     } else if (command == "f") {
       std::string term;
       Face f;

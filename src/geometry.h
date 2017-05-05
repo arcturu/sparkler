@@ -14,6 +14,7 @@ class Ray {
 class Intersection {
  public:
   bool hit;
+  Vector3d p;
   Vector3d n;
 
   Intersection() : hit(false) {};

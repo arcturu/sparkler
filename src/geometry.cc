@@ -33,9 +33,9 @@ Intersection Geometry::intersect(Ray ray) {
 //    std::cout << q.toString() << std::endl;
 
     // check if the intersection point is inside triangle
-    double va = (q - ray.src).dot((*f->vs[1].p - ray.src).cross(*f->vs[0].p - ray.src));
-    double vb = (q - ray.src).dot((*f->vs[2].p - ray.src).cross(*f->vs[1].p - ray.src));
-    double vc = (q - ray.src).dot((*f->vs[0].p - ray.src).cross(*f->vs[2].p - ray.src));
+    double va = (q - ray.src).dot((*f->vs[2].p - ray.src).cross(*f->vs[1].p - ray.src));
+    double vb = (q - ray.src).dot((*f->vs[0].p - ray.src).cross(*f->vs[2].p - ray.src));
+    double vc = (q - ray.src).dot((*f->vs[1].p - ray.src).cross(*f->vs[0].p - ray.src));
 
 //    std::cout << va << " " << vb << " " << vc << std::endl;
     if ((va >= 0 && vb >= 0 && vc >= 0) || (va <= 0 && vb <= 0 && vc <= 0)) {
@@ -43,6 +43,7 @@ Intersection Geometry::intersect(Ray ray) {
         min_t = t;
         double vsum = va + vb + vc;
         it.hit = true;
+        it.p = q;
         if (f->vs[0].n && f->vs[1].n && f->vs[2].n) {
           it.n = (va / vsum * *f->vs[0].n + vb / vsum * *f->vs[1].n + vc / vsum * *f->vs[2].n).normalize();
         } else {
