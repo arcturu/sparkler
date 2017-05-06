@@ -2,6 +2,7 @@
 #define VECTOR3D_H_
 
 #include <string>
+#include "exception.h"
 
 class Vector3d {
  public:
@@ -14,6 +15,7 @@ class Vector3d {
   double length();
   Vector3d normalize();
   std::string toString();
+  double operator[](int i);
 };
 
 Vector3d operator-(const Vector3d v);

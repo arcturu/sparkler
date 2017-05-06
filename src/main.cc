@@ -6,6 +6,7 @@
 #include "raytrace.h"
 #include "vector3d.h"
 #include "exception.h"
+#include "accel.h"
 
 int main(int argc, char **argv) {
   if (argc != 5) {
@@ -13,7 +14,7 @@ int main(int argc, char **argv) {
     return 1;
   }
   try {
-    std::cout << "Parsing " << argv[1] << " ..." <<std::endl;
+    std::cout << "Parsing " << argv[1] << " ..." << std::endl;
     Geometry geo = ParseObj(argv[1]);
     Vector3d c = geo.center();
     geo.dump();
@@ -40,8 +41,14 @@ int main(int argc, char **argv) {
     std::cout << cam.v().toString() << std::endl;
     std::cout << cam.w().toString() << std::endl;
 
+    std::cout << "Preparing ..." << std::endl;
+    AccelNaive accel(std::make_shared<Geometry>(geo));
+//    AccelBvh accel(std::make_shared<Geometry>(geo));
+//    accel.root->dump();
+
     std::cout << "Raytracing ..." << std::endl;
-    Image<uint8_t> img = raytrace(cam, geo);
+    Image<uint8_t> img = raytrace(cam, accel);
+
     std::cout << "Outputting ..." << std::endl;
     img.outputPpm("out.ppm");
   } catch (Exception& e) {

@@ -33,18 +33,16 @@ Pixel<uint8_t> shade(Intersection it) {
   return pix;
 }
 
-Image<uint8_t> raytrace(Camera cam, Geometry geo) {
+Image<uint8_t> raytrace(Camera cam, AccelStructure &accel) {
   Image<uint8_t> img(cam.film.w / cam.film.res, cam.film.h / cam.film.res);
 
   for (int y = 0; y < img.height(); y++) {
     for (int x = 0; x < img.width(); x++) {
       Ray r = generateCameraRay(cam, x, y);
 
-      Intersection it = geo.intersect(r);
+      Intersection it = accel.intersect(r);
       if (it.hit) {
-//        img.m[y][x].r = it.n.x * 255;
-//        img.m[y][x].g = it.n.y * 255;
-//        img.m[y][x].b = it.n.z * 255;
+//        img.m[y][x].r = it.n.x * 255; img.m[y][x].g = it.n.y * 255; img.m[y][x].b = it.n.z * 255;
         img.m[y][x] = shade(it);
       }
     }

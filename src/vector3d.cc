@@ -52,3 +52,16 @@ Vector3d operator/(const Vector3d l, double a) {
   Vector3d v(l.x / a, l.y / a, l.z / a);
   return v;
 }
+
+double Vector3d::operator[](int i) {
+  switch (i) {
+    case 0:
+      return x;
+    case 1:
+      return y;
+    case 2:
+      return z;
+    default:
+      THROW_EXCEPTION("invalid argument");
+  }
+}

@@ -14,6 +14,7 @@ class Ray {
 class Intersection {
  public:
   bool hit;
+  double t;
   Vector3d p;
   Vector3d n;
 
@@ -42,9 +43,9 @@ class Geometry {
   std::vector<Face> fs; // faces
 
   void dump();
-  Intersection intersect(Ray r);
   double r();
   Vector3d center();
+  static Intersection intersectTriangle(Face f, Ray ray);
 };
 
 class Film {
