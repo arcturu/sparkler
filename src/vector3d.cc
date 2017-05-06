@@ -53,28 +53,3 @@ double& Vector3d::operator[](int i) {
       THROW_EXCEPTION("invalid argument");
   }
 }
-
-Vector3d operator-(const Vector3d v) {
-  Vector3d r(-v.x, -v.y, -v.z);
-  return r;
-}
-
-Vector3d operator-(const Vector3d l, const Vector3d r) {
-  Vector3d v(l.x - r.x, l.y - r.y, l.z - r.z);
-  return v;
-}
-
-Vector3d operator+(const Vector3d l, const Vector3d r) {
-  Vector3d v(l.x + r.x, l.y + r.y, l.z + r.z);
-  return v;
-}
-
-Vector3d operator*(double a, const Vector3d r) {
-  Vector3d v(a * r.x, a * r.y, a * r.z);
-  return v;
-}
-
-Vector3d operator/(const Vector3d l, double a) {
-  Vector3d v(l.x / a, l.y / a, l.z / a);
-  return v;
-}

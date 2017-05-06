@@ -19,11 +19,36 @@ class Vector3d {
   double& operator[](int i);
 };
 
-Vector3d operator-(const Vector3d v);
-Vector3d operator-(const Vector3d l, const Vector3d r);
-Vector3d operator+(const Vector3d l, const Vector3d r);
-Vector3d operator*(double a, const Vector3d r);
-Vector3d operator/(const Vector3d l, double a);
+inline Vector3d operator-(const Vector3d v);
+inline Vector3d operator-(const Vector3d l, const Vector3d r);
+inline Vector3d operator+(const Vector3d l, const Vector3d r);
+inline Vector3d operator*(double a, const Vector3d r);
+inline Vector3d operator/(const Vector3d l, double a);
+
+inline Vector3d operator-(const Vector3d v) {
+  Vector3d r(-v.x, -v.y, -v.z);
+  return r;
+}
+
+inline Vector3d operator-(const Vector3d l, const Vector3d r) {
+  Vector3d v(l.x - r.x, l.y - r.y, l.z - r.z);
+  return v;
+}
+
+inline Vector3d operator+(const Vector3d l, const Vector3d r) {
+  Vector3d v(l.x + r.x, l.y + r.y, l.z + r.z);
+  return v;
+}
+
+inline Vector3d operator*(double a, const Vector3d r) {
+  Vector3d v(a * r.x, a * r.y, a * r.z);
+  return v;
+}
+
+inline Vector3d operator/(const Vector3d l, double a) {
+  Vector3d v(l.x / a, l.y / a, l.z / a);
+  return v;
+}
 
 
 #endif
