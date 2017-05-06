@@ -1,6 +1,6 @@
 TARGET = sparkler
 CXX = g++
-CXXFLAGS = -Wall -std=c++14
+CXXFLAGS = -Wall -std=c++14 -O3
 SDIR = src
 ODIR = build
 SRCS = $(patsubst $(SDIR)/%, %, $(wildcard $(SDIR)/*.cc))

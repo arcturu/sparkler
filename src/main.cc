@@ -42,8 +42,8 @@ int main(int argc, char **argv) {
     std::cout << cam.w().toString() << std::endl;
 
     std::cout << "Preparing ..." << std::endl;
-    AccelNaive accel(std::make_shared<Geometry>(geo));
-//    AccelBvh accel(std::make_shared<Geometry>(geo));
+//    AccelNaive accel(std::make_shared<Geometry>(geo));
+    AccelBvh accel(std::make_shared<Geometry>(geo));
 //    accel.root->dump();
 
     std::cout << "Raytracing ..." << std::endl;
