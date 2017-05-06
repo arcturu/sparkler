@@ -7,7 +7,7 @@
 
 #include <iostream>
 
-Intersection AccelNaive::intersect(Ray ray) {
+Intersection AccelNaive::intersect(const Ray& ray) {
   Intersection it;
   double min_t = std::numeric_limits<double>::infinity();
 
@@ -104,11 +104,11 @@ AccelBvh::AccelBvh(std::shared_ptr<Geometry> geo_) : AccelStructure(geo_) {
   root = separateGeometryBvh(geo_->fs);
 }
 
-Intersection AccelBvh::intersect(Ray ray) {
+Intersection AccelBvh::intersect(const Ray& ray) {
   return root->traverse(ray);
 }
 
-bool intersectBox(Vector3d m, Vector3d p, Ray ray) {
+bool intersectBox(Vector3d m, Vector3d p, const Ray& ray) {
   double t_max = std::numeric_limits<double>::infinity();
   double t_min = -std::numeric_limits<double>::infinity();
   for (int i = 0; i < 3; ++i) {
@@ -126,7 +126,7 @@ bool intersectBox(Vector3d m, Vector3d p, Ray ray) {
   return true;
 }
 
-Intersection AccelNode::traverse(Ray ray) {
+Intersection AccelNode::traverse(const Ray& ray) {
   Intersection it;
   double min_t = std::numeric_limits<double>::infinity();
   if (children.size() == 0) { // it's a leef

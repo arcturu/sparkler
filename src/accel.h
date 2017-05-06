@@ -10,7 +10,7 @@ class AccelNode {
   Vector3d p, m; // p: +xyz, n: -xyz boundery
 
   void dump();
-  Intersection traverse(Ray ray);
+  Intersection traverse(const Ray& ray);
 };
 
 class AccelStructure {
@@ -18,13 +18,13 @@ class AccelStructure {
   std::shared_ptr<Geometry> geo;
 
   AccelStructure(std::shared_ptr<Geometry> geo_) : geo(geo_) {}
-  virtual Intersection intersect(Ray ray) = 0;
+  virtual Intersection intersect(const Ray& ray) = 0;
 };
 
 class AccelNaive : public AccelStructure {
  public:
   AccelNaive(std::shared_ptr<Geometry> geo_) : AccelStructure(geo_) {}
-  Intersection intersect(Ray ray);
+  Intersection intersect(const Ray& ray);
 };
 
 class AccelBvh : public AccelStructure {
@@ -32,7 +32,7 @@ class AccelBvh : public AccelStructure {
   std::unique_ptr<AccelNode> root;
 
   AccelBvh(std::shared_ptr<Geometry> geo_);
-  Intersection intersect(Ray ray);
+  Intersection intersect(const Ray& ray);
 };
 
 #endif

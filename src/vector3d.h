@@ -10,12 +10,12 @@ class Vector3d {
 
   Vector3d() : x(0.0), y(0.0), z(0.0) {}
   Vector3d(double x_, double y_, double z_) : x(x_), y(y_), z(z_) {}
-  Vector3d cross(Vector3d v);
-  double dot(Vector3d v);
-  double length();
+  Vector3d cross(Vector3d v) const;
+  double dot(Vector3d v) const;
+  double length() const;
   Vector3d normalize();
-  std::string toString();
-  double operator[](int i);
+  std::string toString() const;
+  double operator[](int i) const;
 };
 
 Vector3d operator-(const Vector3d v);
