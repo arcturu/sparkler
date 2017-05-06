@@ -45,7 +45,7 @@ class Geometry {
   void dump();
   double r();
   Vector3d center();
-  static Intersection intersectTriangle(Face f, Ray ray);
+  static Intersection intersectTriangle(Face& f, Ray ray);
 };
 
 class Film {

@@ -35,7 +35,7 @@ Vector3d Geometry::center() {
   return c;
 }
 
-Intersection Geometry::intersectTriangle(Face f, Ray ray) {
+Intersection Geometry::intersectTriangle(Face& f, Ray ray) {
   Intersection it;
   if (f.vertexCount() != 3) {
     THROW_EXCEPTION("Not implemented yet");
