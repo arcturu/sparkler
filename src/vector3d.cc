@@ -41,6 +41,19 @@ double Vector3d::operator[](int i) const {
   }
 }
 
+double& Vector3d::operator[](int i) {
+  switch (i) {
+    case 0:
+      return x;
+    case 1:
+      return y;
+    case 2:
+      return z;
+    default:
+      THROW_EXCEPTION("invalid argument");
+  }
+}
+
 Vector3d operator-(const Vector3d v) {
   Vector3d r(-v.x, -v.y, -v.z);
   return r;

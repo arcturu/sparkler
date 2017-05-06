@@ -31,7 +31,9 @@ bool belongs(Vector3d v, Vector3d m, Vector3d p) {
 std::unique_ptr<AccelNode> separateGeometryBvh(std::vector<Face> fs) {
   std::unique_ptr<AccelNode> n(new AccelNode);
   const double inf = std::numeric_limits<double>::infinity();
+  const int SEARCH_DIV_RES = 10;
   Vector3d p(-inf, -inf, -inf), m(inf, inf, inf);
+
   for (auto f = fs.begin(); f != fs.end(); ++f) {
     for (auto v = f->vs.begin(); v != f->vs.end(); ++v) {
       if (p.x < v->p->x) { p.x = v->p->x; }
@@ -44,52 +46,41 @@ std::unique_ptr<AccelNode> separateGeometryBvh(std::vector<Face> fs) {
   }
   n->p = p;
   n->m = m;
-  double wx = std::abs(p.x - m.x);
-  double wy = std::abs(p.y - m.y);
-  double wz = std::abs(p.z - m.z);
-  if (fs.size() > 1 &&
-      (wx > Constant::DIV_THRESHOLD ||
-       wy > Constant::DIV_THRESHOLD ||
-       wz > Constant::DIV_THRESHOLD)) {
-    std::unique_ptr<AccelNode> c1(new AccelNode), c2(new AccelNode);
-    if (wx > wy && wx > wz) {
-      c1->m.x = m.x; c1->m.y = m.y; c1->m.z = m.z;
-      c1->p.x = (m.x + p.x) / 2 - Constant::EPS; c1->p.y = p.y; c1->p.z = p.z;
-      c2->m.x = (m.x + p.x) / 2 + Constant::EPS; c2->m.y = m.y; c2->m.z = m.z;
-      c2->p.x = p.x; c2->p.y = p.y; c2->p.z = p.z;
-    } else if (wy > wx && wy > wz) {
-      c1->m.x = m.x; c1->m.y = m.y; c1->m.z = m.z;
-      c1->p.x = p.x; c1->p.y = (m.y + p.y) / 2 + Constant::EPS; c1->p.z = p.z;
-      c2->m.x = m.x; c2->m.y = (m.y + p.y) / 2 + Constant::EPS; c2->m.z = m.z;
-      c2->p.x = p.x; c2->p.y = p.y; c2->p.z = p.z;
-    } else { // wz is the largest or else
-      c1->m.x = m.x; c1->m.y = m.y; c1->m.z = m.z;
-      c1->p.x = p.x; c1->p.y = p.y; c1->p.z = (m.z + p.z) / 2 + Constant::EPS;
-      c2->m.x = m.x; c2->m.y = m.y; c2->m.z = (m.z + p.z) / 2 + Constant::EPS;
-      c2->p.x = p.x; c2->p.y = p.y; c2->p.z = p.z;
-    }
-    std::vector<Face> fs1, fs2;
-    for (auto f = fs.begin(); f != fs.end(); ++f) {
-      bool in1 = false;
-      for (auto v = f->vs.begin(); v != f->vs.end(); ++v) {
-        if (belongs(*v->p, c1->m, c1->p)) {
-          in1 = true;
-          break;
+  if (fs.size() > 1) {
+    std::vector<Face> fs1 = fs, fs2;
+    int min_diff = std::numeric_limits<int>::max(); // int does not have infinity but max
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < SEARCH_DIV_RES; j++) {
+        Vector3d tmp_p = p;
+        tmp_p[i] = m[i] + (p[i] - m[i]) / SEARCH_DIV_RES * j;
+
+        std::vector<Face> tmp_fs1, tmp_fs2;
+        for (auto f = fs.begin(); f != fs.end(); ++f) {
+          bool in1 = false;
+          for (auto v = f->vs.begin(); v != f->vs.end(); ++v) {
+            if (belongs(*v->p, m, tmp_p)) {
+              in1 = true;
+              break;
+            }
+          }
+          if (in1) {
+            tmp_fs1.push_back(*f);
+          } else {
+            tmp_fs2.push_back(*f);
+          }
+        }
+
+        int d = abs((int)tmp_fs1.size() - (int)tmp_fs2.size());
+        if (d < min_diff) {
+          min_diff = d;
+          fs1 = tmp_fs1;
+          fs2 = tmp_fs2;
         }
       }
-      if (in1) {
-        fs1.push_back(*f);
-      } else {
-        fs2.push_back(*f);
-      }
     }
-
     if (fs1.size() != 0 && fs2.size() != 0 && (fs1.size() < fs.size() || fs2.size() < fs.size())) {
-      c1 = separateGeometryBvh(fs1);
-      c2 = separateGeometryBvh(fs2);
-
-      n->children.push_back(std::move(c1));
-      n->children.push_back(std::move(c2));
+      n->children.push_back(separateGeometryBvh(fs1));
+      n->children.push_back(separateGeometryBvh(fs2));
     } else {
       n->faces = fs;
     }

@@ -16,6 +16,7 @@ class Vector3d {
   Vector3d normalize();
   std::string toString() const;
   double operator[](int i) const;
+  double& operator[](int i);
 };
 
 Vector3d operator-(const Vector3d v);
