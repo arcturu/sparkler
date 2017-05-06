@@ -19,12 +19,6 @@ class Vector3d {
   double& operator[](int i);
 };
 
-inline Vector3d operator-(const Vector3d v);
-inline Vector3d operator-(const Vector3d l, const Vector3d r);
-inline Vector3d operator+(const Vector3d l, const Vector3d r);
-inline Vector3d operator*(double a, const Vector3d r);
-inline Vector3d operator/(const Vector3d l, double a);
-
 inline Vector3d operator-(const Vector3d v) {
   Vector3d r(-v.x, -v.y, -v.z);
   return r;
