@@ -10,8 +10,8 @@ Ray generateCameraRay(Camera cam, int x, int y) {
   r.src = (cam.film.res * (y + 0.5) - cam.film.h / 2.0) * cam.u()
     + (cam.film.res * (x + 0.5) - cam.film.w / 2.0) * cam.v()
     + cam.film.z * cam.w()
-    + cam.p;
-  r.dir = (r.src - cam.p).normalize();
+    + cam.p();
+  r.dir = (r.src - cam.p()).normalize();
   return r;
 }
 
@@ -42,10 +42,10 @@ Image<uint8_t> raytrace(Camera cam, Geometry geo) {
 
       Intersection it = geo.intersect(r);
       if (it.hit) {
-        img.m[y][x].r = it.n.x * 255;
-        img.m[y][x].g = it.n.y * 255;
-        img.m[y][x].b = it.n.z * 255;
-//        img.m[y][x] = shade(it);
+//        img.m[y][x].r = it.n.x * 255;
+//        img.m[y][x].g = it.n.y * 255;
+//        img.m[y][x].b = it.n.z * 255;
+        img.m[y][x] = shade(it);
       }
     }
   }

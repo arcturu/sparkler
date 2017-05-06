@@ -4,5 +4,6 @@
 #include "geometry.h"
 
 Geometry ParseObj(const char *path); // parsing .obj files
+Camera ParseObjxCamera(const char *path, bool *st);
 
 #endif

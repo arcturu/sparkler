@@ -8,23 +8,40 @@
 #include "exception.h"
 
 int main(int argc, char **argv) {
-  if (argc < 2) {
-    std::cout << "usage: " << argv[0] << " [path-to-obj-file]" << std::endl;
+  if (argc != 5) {
+    std::cout << "usage: " << argv[0] << " [path-to-obj-file] [film-w] [film-h] [film-res]" << std::endl;
+    return 1;
   }
   try {
     std::cout << "Parsing " << argv[1] << " ..." <<std::endl;
     Geometry geo = ParseObj(argv[1]);
+    Vector3d c = geo.center();
     geo.dump();
     std::cout << "Generating camera ..." << std::endl;
-    Camera camera(3, 3, 0.01, geo);
-    std::cout << camera.film.z << std::endl;
-    std::cout << camera.p.toString() << std::endl;
-    std::cout << camera.u().toString() << std::endl;
-    std::cout << camera.v().toString() << std::endl;
-    std::cout << camera.w().toString() << std::endl;
+    bool st;
+    Camera cam = ParseObjxCamera(argv[1], &st);
+    if (!st) {
+      std::cout << "[Warning] No camera definition found in " << argv[1] << std::endl;
+      Vector3d up(0, 1, 0);
+      cam.up(up);
+      Vector3d p = c;
+      double r = geo.r();
+      p.x += 10.3 * r;
+      cam.p(p);
+      cam.film.z = 10 * r;
+    }
+    cam.w((c - cam.p()).normalize());
+    cam.film.w = std::stod(argv[2]);
+    cam.film.h = std::stod(argv[3]);
+    cam.film.res = std::stod(argv[4]);
+    std::cout << cam.film.z << std::endl;
+    std::cout << cam.p().toString() << std::endl;
+    std::cout << cam.u().toString() << std::endl;
+    std::cout << cam.v().toString() << std::endl;
+    std::cout << cam.w().toString() << std::endl;
 
     std::cout << "Raytracing ..." << std::endl;
-    Image<uint8_t> img = raytrace(camera, geo);
+    Image<uint8_t> img = raytrace(cam, geo);
     std::cout << "Outputting ..." << std::endl;
     img.outputPpm("out.ppm");
   } catch (Exception& e) {

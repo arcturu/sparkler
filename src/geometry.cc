@@ -10,6 +10,7 @@ void Geometry::dump() {
   std::cout << "#vertices: " << ps.size() << std::endl;
   std::cout << "#normals: " << ns.size() << std::endl;
   std::cout << "#faces: " << fs.size() << std::endl;
+  std::cout << "center: " << center().toString() << std::endl;
 }
 
 Intersection Geometry::intersect(Ray ray) {
@@ -56,20 +57,39 @@ Intersection Geometry::intersect(Ray ray) {
   return it;
 }
 
-// calculate feasible camera position from the geometry
-Camera::Camera(double w, double h, double res, Geometry geo) {
+double Geometry::r() {
   double r = 0;
-  for (auto v = geo.ps.begin(); v !=  geo.ps.end(); ++v) {
-    double dist = (*v - geo.center).length();
+  Vector3d c = center();
+  for (auto v = ps.begin(); v !=  ps.end(); ++v) {
+    double dist = (*v - c).length();
     if (dist > r) {
       r = dist;
     }
   }
-  p = geo.center;
-  p.z += r * 10;
-  film.w = w; film.h = h; film.z = 10.0; film.res = res;
-  w_ = (geo.center - p).normalize();
-  Vector3d up(0, 1, 0);
-  v_ = w_.cross(up);
+  return r;
+}
+
+Vector3d Geometry::center() {
+  Vector3d c;
+  for (auto v = ps.begin(); v !=  ps.end(); ++v) {
+    c = c + *v;
+  }
+  c = c / ps.size();
+  return c;
+}
+
+void Camera::up(Vector3d up) {
+  up_ = up;
+  v_ = w_.cross(up_);
+  u_ = v_.cross(w_);
+}
+
+void Camera::p(Vector3d p) {
+  p_ = p;
+}
+
+void Camera::w(Vector3d w) {
+  w_ = w;
+  v_ = w_.cross(up_);
   u_ = v_.cross(w_);
 }

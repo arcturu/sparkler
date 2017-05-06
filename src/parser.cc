@@ -39,7 +39,6 @@ Geometry ParseObj(const char *path) {
       sline >> x >> y >> z;
       Vector3d v(x, y, z);
       geo.ps.push_back(v);
-      geo.center = geo.center + v;
 //    } else if (command == "vt") {
     } else if (command == "vn") {
       double x, y, z;
@@ -75,6 +74,38 @@ Geometry ParseObj(const char *path) {
       std::cerr << "unknown command: \"" << command << "\"" << std::endl;
     }
   }
-  geo.center = geo.center / geo.ps.size();
   return geo;
+}
+
+Camera ParseObjxCamera(const char *path, bool *st) {
+  std::ifstream file(path);
+  std::string line;
+  Camera cam;
+  bool bcp = false, bup = false, bd = false;
+  while (std::getline(file, line)) {
+    if (line.size() < 1) {
+      continue;
+    }
+    std::stringstream sline(line);
+    std::string command;
+    sline >> command;
+    if (command == "#objx-cp") { // [extension] camera position
+      Vector3d v;
+      sline >> v.x >> v.y >> v.z;
+      cam.p(v);
+      bcp = true;
+    } else if (command == "#objx-up") { // [extension] up direction
+      Vector3d v;
+      sline >> v.x >> v.y >> v.z;
+      cam.up(v);
+      bup = true;
+    } else if (command == "#objx-d") { // [extension] film depth
+      double d;
+      sline >> d;
+      cam.film.z = d;
+      bd = true;
+    }
+  }
+  *st = bcp & bup & bd;
+  return cam;
 }

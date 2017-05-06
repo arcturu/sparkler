@@ -40,10 +40,11 @@ class Geometry {
   std::vector<Vector3d> ps; // positions of vertices
   std::vector<Vector3d> ns; // normals at vertices
   std::vector<Face> fs; // faces
-  Vector3d center;
 
   void dump();
   Intersection intersect(Ray r);
+  double r();
+  Vector3d center();
 };
 
 class Film {
@@ -57,22 +58,25 @@ class Film {
 
 class Camera {
  private:
+  Vector3d up_;
+  Vector3d p_;
   Vector3d u_;
   Vector3d v_;
   Vector3d w_;
 
  public:
-  Vector3d p; // position
   Film film;
 
-  Camera(Vector3d u, Vector3d v, Vector3d p_, Film film_) : u_(u), v_(v), p(p_), film(film_) {}
-  Camera(double w, double h, double res, Geometry geo);
+//  Camera(Vector3d u, Vector3d v, Vector3d p, Film film_) : p_(p), u_(u), v_(v), film(film_) {}
+  Camera() {}
+  Vector3d p() { return p_; } // position
   Vector3d u() { return u_; } // y axis of the camera
   Vector3d v() { return v_; } // x axis of
-  Vector3d w() { return u_.cross(v_); } // z
+  Vector3d w() { return w_; } // z
 
-  void u(Vector3d u) { u_ = u; }
-  void v(Vector3d v) { v_ = v; }
+  void up(Vector3d up);
+  void p(Vector3d p);
+  void w(Vector3d w);
 };
 
 #endif
