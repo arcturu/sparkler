@@ -52,17 +52,20 @@ Geometry ParseObj(const char *path) {
         // each term of "f" command consists of v/vt/vn
         Vertex v;
         std::vector<std::string> tokens = split(term, '/');
-        if (tokens.size() != 3) {
-          std::cout << std::endl;
+//        for (int i = 0; i < tokens.size(); i++) {
+//          std::cout << "\"" << tokens[i] << "\" ";
+//        }
+//        std::cout << std::endl;
+        if (tokens.size() > 3 || tokens.size() == 0) {
           THROW_EXCEPTION("ParseObj: Invalid face term");
         }
         if (tokens[0].size() > 0) {
           v.p = std::make_shared<Vector3d>(geo.ps[std::stoi(tokens[0])-1]);
         }
-        if (tokens[1].size() > 0) {
+        if (tokens.size() >= 2 && tokens[1].size() > 0) {
 //          fc.vt = std::stoi(tokens[1]); // TODO
         }
-        if (tokens[2].size() > 0) {
+        if (tokens.size() >= 3 && tokens[2].size() > 0) {
           v.n = std::make_shared<Vector3d>(geo.ns[std::stoi(tokens[2])-1]);
         }
         f.vs.push_back(v);

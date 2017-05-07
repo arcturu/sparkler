@@ -32,7 +32,7 @@ std::unique_ptr<AccelNode> separateGeometryBvh(std::vector<Face> fs) {
   std::unique_ptr<AccelNode> n(new AccelNode);
   const double inf = std::numeric_limits<double>::infinity();
   const int SEARCH_DIV_RES = 10;
-  const int MIN_OBJS = 2;
+  const int MIN_OBJS = 10;
   Vector3d p(-inf, -inf, -inf), m(inf, inf, inf);
 
   for (auto f = fs.begin(); f != fs.end(); ++f) {

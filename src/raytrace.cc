@@ -26,10 +26,11 @@ uint8_t saturate(double x, uint8_t limit) {
 }
 
 Pixel<uint8_t> shade(Intersection it) {
-  Vector3d l(5, 5, 5);
+  Vector3d l(-5, -5, -5);
   double luminance = 20000.0;
   Pixel<uint8_t> pix;
   pix.r = pix.g = pix.b = saturate(it.n.dot(l - it.p) / 4.0 / M_PI / std::pow((it.p - l).length(), 2) * luminance, 255);
+  std::cout << it.n.dot(l - it.p) / 4.0 / M_PI / std::pow((it.p - l).length(), 2) * luminance << std::endl;
   return pix;
 }
 
