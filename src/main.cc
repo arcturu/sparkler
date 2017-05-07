@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
 //    accel.root->dump();
 
     std::cout << "Raytracing ..." << std::endl;
-    Image<uint8_t> img = raytrace(cam, accel);
+    Image<uint8_t> img = raytrace(cam, geo, accel);
 
     std::cout << "Outputting ..." << std::endl;
     img.outputPpm("out.ppm");

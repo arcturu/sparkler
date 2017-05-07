@@ -25,16 +25,15 @@ uint8_t saturate(double x, uint8_t limit) {
   }
 }
 
-Pixel<uint8_t> shade(Intersection it) {
-  Vector3d l(-5, -5, -5);
-  double luminance = 20000.0;
+Pixel<uint8_t> shade(Intersection it, std::vector<Light> ls) {
   Pixel<uint8_t> pix;
-  pix.r = pix.g = pix.b = saturate(it.n.dot(l - it.p) / 4.0 / M_PI / std::pow((it.p - l).length(), 2) * luminance, 255);
-  std::cout << it.n.dot(l - it.p) / 4.0 / M_PI / std::pow((it.p - l).length(), 2) * luminance << std::endl;
+  for (auto l = ls.begin(); l != ls.end(); ++l) {
+    pix.r = pix.g = pix.b = saturate(pix.r + it.n.dot(l->p - it.p) / 4.0 / M_PI / std::pow((it.p - l->p).length(), 2) * l->luminance, 255);
+  }
   return pix;
 }
 
-Image<uint8_t> raytrace(Camera cam, AccelStructure &accel) {
+Image<uint8_t> raytrace(Camera cam, Geometry geo, AccelStructure &accel) {
   Image<uint8_t> img(cam.film.w / cam.film.res, cam.film.h / cam.film.res);
 
   for (int y = 0; y < img.height(); y++) {
@@ -44,7 +43,7 @@ Image<uint8_t> raytrace(Camera cam, AccelStructure &accel) {
       Intersection it = accel.intersect(r);
       if (it.hit) {
 //        img.m[y][x].r = it.n.x * 255; img.m[y][x].g = it.n.y * 255; img.m[y][x].b = it.n.z * 255;
-        img.m[y][x] = shade(it);
+        img.m[y][x] = shade(it, geo.ls);
       }
     }
   }

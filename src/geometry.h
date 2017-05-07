@@ -36,11 +36,21 @@ class Face {
   int vertexCount() const { return vs.size(); }
 };
 
+class Light {
+ public:
+  Vector3d p;
+  double luminance;
+
+  Light(Vector3d p_, double luminance_) : p(p_), luminance(luminance_) {}
+  Light() : p(), luminance(0) {}
+};
+
 class Geometry {
  public:
   std::vector<Vector3d> ps; // positions of vertices
   std::vector<Vector3d> ns; // normals at vertices
   std::vector<Face> fs; // faces
+  std::vector<Light> ls; // lights
 
   void dump();
   double r();

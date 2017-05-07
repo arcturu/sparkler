@@ -71,6 +71,11 @@ Geometry ParseObj(const char *path) {
         f.vs.push_back(v);
       }
       geo.fs.push_back(f);
+    } else if (command == "#objx-l") { //[extension] light; x y z luminance
+      Vector3d v;
+      double l;
+      sline >> v.x >> v.y >> v.z >> l;
+      geo.ls.emplace_back(v, l);
     } else if (command.size() > 0 && command[0] == '#') {
       // skip comment
     } else {

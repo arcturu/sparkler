@@ -12,6 +12,10 @@ void Geometry::dump() {
   std::cout << "#normals: " << ns.size() << std::endl;
   std::cout << "#faces: " << fs.size() << std::endl;
   std::cout << "center: " << center().toString() << std::endl;
+  std::cout << "r: " << r() << std::endl;
+  for (auto l = ls.begin(); l != ls.end(); ++l) {
+    std::cout << "light: " << l->p.toString() << " " << l->luminance << std::endl;
+  }
 }
 
 double Geometry::r() {

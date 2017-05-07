@@ -5,6 +5,6 @@
 #include "geometry.h"
 #include "accel.h"
 
-Image<uint8_t> raytrace(Camera cam, AccelStructure& accel);
+Image<uint8_t> raytrace(Camera cam, Geometry geo, AccelStructure& accel);
 
 #endif
