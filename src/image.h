@@ -9,6 +9,8 @@ class Pixel {
   T r;
   T g;
   T b;
+
+  Pixel() : r(0), g(0), b(0) {}
 };
 
 template <class T>
