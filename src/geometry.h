@@ -11,17 +11,6 @@ class Ray {
   Vector3d dir;
 };
 
-class Intersection {
- public:
-  bool hit;
-  double t;
-  Vector3d p;
-  Vector3d n;
-
-  Intersection() : hit(false) {};
-  Intersection(bool hit_) : hit(hit_) {};
-};
-
 class Vertex {
  public:
   std::shared_ptr<Vector3d> p;
@@ -34,6 +23,18 @@ class Face {
   std::vector<Vertex> vs;
 
   int vertexCount() const { return vs.size(); }
+};
+
+class Intersection {
+ public:
+  bool hit;
+  double t;
+  Vector3d p;
+  Vector3d n;
+  Face face;
+
+  Intersection() : hit(false) {};
+  Intersection(bool hit_) : hit(hit_) {};
 };
 
 class Light {

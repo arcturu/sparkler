@@ -110,10 +110,34 @@ AccelBvh::AccelBvh(std::shared_ptr<Geometry> geo_) : AccelStructure(geo_) {
 }
 
 Intersection AccelBvh::intersect(const Ray& ray) {
-  return root->traverse(ray);
+  double min_t = std::numeric_limits<double>::infinity();
+  // check history first
+  Intersection it;
+  for (int i = 0; i < (hist_tail + HIST_COUNT - hist_head) % HIST_COUNT; ++i) {
+    int index = (hist_head + i + 1) % HIST_COUNT;
+    Intersection tmp_it = Geometry::intersectTriangle(history[index], ray);
+    if (tmp_it.hit && tmp_it.t < min_t) {
+      min_t = tmp_it.t;
+      it = tmp_it;
+    }
+  }
+  Intersection it2 = root->traverse(ray, min_t);
+  if (it.hit && it.t <= min_t) {
+    return it;
+  } else if (it2.hit) {
+    if ((hist_head - 1 + HIST_COUNT) % HIST_COUNT != hist_tail) {
+      history[hist_head] = it2.face;
+      hist_head = (hist_head - 1 + HIST_COUNT) % HIST_COUNT;
+    } else {
+      history[hist_head] = it2.face;
+      hist_head = (hist_head - 1 + HIST_COUNT) % HIST_COUNT;
+      hist_tail = (hist_tail - 1 + HIST_COUNT) % HIST_COUNT;
+    }
+  }
+  return it2;
 }
 
-bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray) {
+bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray, double *t) {
   double t_max = std::numeric_limits<double>::infinity();
   double t_min = -std::numeric_limits<double>::infinity();
   for (int i = 0; i < 3; ++i) {
@@ -128,12 +152,12 @@ bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray) {
       return false;
     }
   }
+  *t = t_min;
   return true;
 }
 
-Intersection AccelNode::traverse(const Ray& ray) {
+Intersection AccelNode::traverse(const Ray& ray, double min_t) {
   Intersection it;
-  double min_t = std::numeric_limits<double>::infinity();
   if (children.size() == 0) { // it's a leef
     for (auto f = faces.begin(); f != faces.end(); ++f) {
       Intersection ittmp = Geometry::intersectTriangle(*f, ray);
@@ -143,9 +167,13 @@ Intersection AccelNode::traverse(const Ray& ray) {
       }
     }
   } else {
+    double t;
     for (int i = 0; i < children.size(); i++) {
-      if (intersectBox(children[i]->m, children[i]->p, ray)) {
-        Intersection ittmp = children[i]->traverse(ray);
+      if (intersectBox(children[i]->m, children[i]->p, ray, &t)) {
+        if (t > min_t) {
+          continue;
+        }
+        Intersection ittmp = children[i]->traverse(ray, min_t);
         if (ittmp.hit && ittmp.t < min_t) {
           min_t = ittmp.t;
           it = ittmp;

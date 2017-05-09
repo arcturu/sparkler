@@ -20,14 +20,18 @@ class AccelNode {
   Vector3d p, m; // p: +xyz, n: -xyz boundery
 
   void dump();
-  Intersection traverse(const Ray& ray);
+  Intersection traverse(const Ray& ray, double min_t);
 };
 
 class AccelStructure {
  public:
+  static constexpr int HIST_COUNT = 10;
   std::shared_ptr<Geometry> geo;
+  Face history[HIST_COUNT];
+  int hist_head;
+  int hist_tail;
 
-  AccelStructure(std::shared_ptr<Geometry> geo_) : geo(geo_) {}
+  AccelStructure(std::shared_ptr<Geometry> geo_) : geo(geo_), hist_head(0), hist_tail(0) {}
   virtual Intersection intersect(const Ray& ray) = 0;
 };
 
