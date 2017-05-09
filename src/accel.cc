@@ -56,7 +56,7 @@ double costSeparationBvh(const std::vector<Face>& fs1, const std::vector<Face>& 
 std::unique_ptr<AccelNode> separateGeometryBvh(std::vector<Face> fs) {
   std::unique_ptr<AccelNode> n(new AccelNode);
   const int SEARCH_DIV_RES = 10;
-  const int MIN_OBJS = 10;
+  const int MIN_OBJS = 3;
   Aabb a = boundingBox(fs);
   n->p = a.p;
   n->m = a.m;
