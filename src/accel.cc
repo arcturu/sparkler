@@ -28,13 +28,9 @@ bool belongs(Vector3d v, Vector3d m, Vector3d p) {
          v.z >= m.z && v.z <= p.z;
 }
 
-std::unique_ptr<AccelNode> separateGeometryBvh(std::vector<Face> fs) {
-  std::unique_ptr<AccelNode> n(new AccelNode);
+Aabb boundingBox(const std::vector<Face>& fs) {
   const double inf = std::numeric_limits<double>::infinity();
-  const int SEARCH_DIV_RES = 10;
-  const int MIN_OBJS = 10;
   Vector3d p(-inf, -inf, -inf), m(inf, inf, inf);
-
   for (auto f = fs.begin(); f != fs.end(); ++f) {
     for (auto v = f->vs.begin(); v != f->vs.end(); ++v) {
       if (p.x < v->p->x) { p.x = v->p->x; }
@@ -45,21 +41,38 @@ std::unique_ptr<AccelNode> separateGeometryBvh(std::vector<Face> fs) {
       if (m.z > v->p->z) { m.z = v->p->z; }
     }
   }
-  n->p = p;
-  n->m = m;
+  Aabb a(p, m);
+  return a;
+}
+
+double costSeparationBvh(const std::vector<Face>& fs1, const std::vector<Face>& fs2, double sv) {
+  Aabb a1 = boundingBox(fs1);
+  Aabb a2 = boundingBox(fs2);
+  double a1v = a1.volume();
+  double a2v = a2.volume();
+  return a1v / sv * fs1.size() + a2v / sv * fs2.size();
+}
+
+std::unique_ptr<AccelNode> separateGeometryBvh(std::vector<Face> fs) {
+  std::unique_ptr<AccelNode> n(new AccelNode);
+  const int SEARCH_DIV_RES = 10;
+  const int MIN_OBJS = 10;
+  Aabb a = boundingBox(fs);
+  n->p = a.p;
+  n->m = a.m;
   if (fs.size() > MIN_OBJS) {
     std::vector<Face> fs1 = fs, fs2;
-    int min_diff = std::numeric_limits<int>::max(); // int does not have infinity but max
+    double min_c = std::numeric_limits<double>::infinity();
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < SEARCH_DIV_RES; j++) {
-        Vector3d tmp_p = p;
-        tmp_p[i] = m[i] + (p[i] - m[i]) / SEARCH_DIV_RES * j;
+        Vector3d tmp_p = n->p;
+        tmp_p[i] = n->m[i] + (n->p[i] - n->m[i]) / SEARCH_DIV_RES * j;
 
         std::vector<Face> tmp_fs1, tmp_fs2;
         for (auto f = fs.begin(); f != fs.end(); ++f) {
           bool in1 = false;
           for (auto v = f->vs.begin(); v != f->vs.end(); ++v) {
-            if (belongs(*v->p, m, tmp_p)) {
+            if (belongs(*v->p, n->m, tmp_p)) {
               in1 = true;
               break;
             }
@@ -71,9 +84,9 @@ std::unique_ptr<AccelNode> separateGeometryBvh(std::vector<Face> fs) {
           }
         }
 
-        int d = abs((int)tmp_fs1.size() - (int)tmp_fs2.size());
-        if (d < min_diff) {
-          min_diff = d;
+        double c = costSeparationBvh(tmp_fs1, tmp_fs2, a.volume());
+        if (c < min_c) {
+          min_c = c;
           fs1 = tmp_fs1;
           fs2 = tmp_fs2;
         }

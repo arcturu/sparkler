@@ -3,6 +3,16 @@
 
 #include "geometry.h"
 
+class Aabb {
+ public:
+  Vector3d p, m;
+
+  Aabb(Vector3d p_, Vector3d m_) : p(p_), m(m_) {}
+  double volume() {
+    return (p.x - m.x) * (p.y - m.y) * (p.z - m.z);
+  }
+};
+
 class AccelNode {
  public:
   std::vector<std::unique_ptr<AccelNode>> children;
