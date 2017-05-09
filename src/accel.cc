@@ -100,7 +100,7 @@ Intersection AccelBvh::intersect(const Ray& ray) {
   return root->traverse(ray);
 }
 
-bool intersectBox(Vector3d m, Vector3d p, const Ray& ray) {
+bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray) {
   double t_max = std::numeric_limits<double>::infinity();
   double t_min = -std::numeric_limits<double>::infinity();
   for (int i = 0; i < 3; ++i) {
