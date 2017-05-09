@@ -9,13 +9,21 @@
 void Geometry::dump() {
   // dump statistics
   std::cout << "#vertices: " << ps.size() << std::endl;
-  std::cout << "#normals: " << ns.size() << std::endl;
-  std::cout << "#faces: " << fs.size() << std::endl;
-  std::cout << "center: " << center().toString() << std::endl;
-  std::cout << "r: " << r() << std::endl;
+  std::cout << " #normals: " << ns.size() << std::endl;
+  std::cout << "   #faces: " << fs.size() << std::endl;
+  std::cout << "   center: " << center().toString() << std::endl;
+  std::cout << "        r: " << r() << std::endl;
   for (auto l = ls.begin(); l != ls.end(); ++l) {
-    std::cout << "light: " << l->p.toString() << " " << l->luminance << std::endl;
+    std::cout << "    light: " << "at " << l->p.toString() << " luminance = " << l->luminance << std::endl;
   }
+}
+
+void Camera::dump() {
+  std::cout << "   camera: p = " << p().toString() << std::endl;
+  std::cout << "   camera: u = " << u().toString() << std::endl;
+  std::cout << "   camera: v = " << v().toString() << std::endl;
+  std::cout << "   camera: w = " << w().toString() << std::endl;
+  std::cout << "   camera: d = " << film.z << std::endl;
 }
 
 double Geometry::r() {

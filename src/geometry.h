@@ -55,7 +55,7 @@ class Geometry {
   void dump();
   double r();
   Vector3d center();
-  static Intersection intersectTriangle(const Face& f, const Ray & ray);
+  static Intersection intersectTriangle(const Face& f, const Ray& ray);
 };
 
 class Film {
@@ -80,6 +80,7 @@ class Camera {
 
 //  Camera(Vector3d u, Vector3d v, Vector3d p, Film film_) : p_(p), u_(u), v_(v), film(film_) {}
   Camera() {}
+  void dump();
   Vector3d p() { return p_; } // position
   Vector3d u() { return u_; } // y axis of the camera
   Vector3d v() { return v_; } // x axis of

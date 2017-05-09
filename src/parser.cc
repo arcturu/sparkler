@@ -7,6 +7,7 @@
 #include "geometry.h"
 #include "vector3d.h"
 #include "exception.h"
+#include "logger.h"
 
 std::vector<std::string> split(std::string line, char delim) {
   std::vector<std::string> terms;
@@ -57,7 +58,7 @@ Geometry ParseObj(const char *path) {
 //        }
 //        std::cout << std::endl;
         if (tokens.size() > 3 || tokens.size() == 0) {
-          THROW_EXCEPTION("ParseObj: Invalid face term");
+          THROW_EXCEPTION("Invalid face term");
         }
         if (tokens[0].size() > 0) {
           v.p = std::make_shared<Vector3d>(geo.ps[std::stoi(tokens[0])-1]);
@@ -79,7 +80,7 @@ Geometry ParseObj(const char *path) {
     } else if (command.size() > 0 && command[0] == '#') {
       // skip comment
     } else {
-      std::cerr << "unknown command: \"" << command << "\"" << std::endl;
+      Logger::warn(std::string("unknown command: \"") + command + "\"");
     }
   }
   return geo;
