@@ -20,7 +20,11 @@ class AccelNode {
   Vector3d p, m; // p: +xyz, n: -xyz boundery
 
   void dump();
+#ifdef SPARKLER_DEBUG
+  Intersection traverse(const Ray& ray, double min_t, int stat_depth);
+#else
   Intersection traverse(const Ray& ray, double min_t);
+#endif
 };
 
 class AccelStructure {

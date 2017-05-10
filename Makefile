@@ -16,5 +16,8 @@ $(ODIR)/%.o: $(SDIR)/%.cc
 $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS) $(LIBDIRS)
 
+debug: CXXFLAGS += -Dcpp_variable=DEBUG
+debug: $(TARGET)
+
 clean:
 	rm -rf build sparkler

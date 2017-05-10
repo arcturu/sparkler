@@ -33,8 +33,22 @@ class Intersection {
   Vector3d n;
   Face face;
 
-  Intersection() : hit(false) {};
-  Intersection(bool hit_) : hit(hit_) {};
+#ifdef SPARKLER_DEBUG
+  int stat_depth;
+  void initstat() {
+    stat_depth = 0;
+  }
+#endif
+  Intersection() : hit(false) {
+#ifdef SPARKLER_DEBUG
+    initstat();
+#endif
+  };
+  Intersection(bool hit_) : hit(hit_) {
+#ifdef SPARKLER_DEBUG
+    initstat();
+#endif
+  };
 };
 
 class Light {

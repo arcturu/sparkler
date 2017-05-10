@@ -112,28 +112,32 @@ AccelBvh::AccelBvh(std::shared_ptr<Geometry> geo_) : AccelStructure(geo_) {
 Intersection AccelBvh::intersect(const Ray& ray) {
   double min_t = std::numeric_limits<double>::infinity();
   // check history first
-  Intersection it;
-  for (int i = 0; i < (hist_tail + HIST_COUNT - hist_head) % HIST_COUNT; ++i) {
-    int index = (hist_head + i + 1) % HIST_COUNT;
-    Intersection tmp_it = Geometry::intersectTriangle(history[index], ray);
-    if (tmp_it.hit && tmp_it.t < min_t) {
-      min_t = tmp_it.t;
-      it = tmp_it;
-    }
-  }
+//  Intersection it;
+//  for (int i = 0; i < (hist_tail + HIST_COUNT - hist_head) % HIST_COUNT; ++i) {
+//    int index = (hist_head + i + 1) % HIST_COUNT;
+//    Intersection tmp_it = Geometry::intersectTriangle(history[index], ray);
+//    if (tmp_it.hit && tmp_it.t < min_t) {
+//      min_t = tmp_it.t;
+//      it = tmp_it;
+//    }
+//  }
+#ifdef SPARKLER_DEBUG
+  Intersection it2 = root->traverse(ray, min_t, 0);
+#else
   Intersection it2 = root->traverse(ray, min_t);
-  if (it.hit && it.t <= min_t) {
-    return it;
-  } else if (it2.hit) {
-    if ((hist_head - 1 + HIST_COUNT) % HIST_COUNT != hist_tail) {
-      history[hist_head] = it2.face;
-      hist_head = (hist_head - 1 + HIST_COUNT) % HIST_COUNT;
-    } else {
-      history[hist_head] = it2.face;
-      hist_head = (hist_head - 1 + HIST_COUNT) % HIST_COUNT;
-      hist_tail = (hist_tail - 1 + HIST_COUNT) % HIST_COUNT;
-    }
-  }
+#endif
+//  if (it.hit && it.t <= min_t) {
+//    return it;
+//  } else if (it2.hit) {
+//    if ((hist_head - 1 + HIST_COUNT) % HIST_COUNT != hist_tail) {
+//      history[hist_head] = it2.face;
+//      hist_head = (hist_head - 1 + HIST_COUNT) % HIST_COUNT;
+//    } else {
+//      history[hist_head] = it2.face;
+//      hist_head = (hist_head - 1 + HIST_COUNT) % HIST_COUNT;
+//      hist_tail = (hist_tail - 1 + HIST_COUNT) % HIST_COUNT;
+//    }
+//  }
   return it2;
 }
 
@@ -156,7 +160,11 @@ bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray, double *
   return true;
 }
 
+#ifdef SPARKLER_DEBUG
+Intersection AccelNode::traverse(const Ray& ray, double min_t, int stat_depth) {
+#else
 Intersection AccelNode::traverse(const Ray& ray, double min_t) {
+#endif
   Intersection it;
   if (children.size() == 0) { // it's a leef
     for (auto f = faces.begin(); f != faces.end(); ++f) {
@@ -164,6 +172,9 @@ Intersection AccelNode::traverse(const Ray& ray, double min_t) {
       if (ittmp.hit && ittmp.t < min_t) {
         min_t = ittmp.t;
         it = ittmp;
+#ifdef SPARKLER_DEBUG
+        it.stat_depth = stat_depth;
+#endif
       }
     }
   } else {
@@ -173,7 +184,11 @@ Intersection AccelNode::traverse(const Ray& ray, double min_t) {
         if (t > min_t) {
           continue;
         }
+#ifdef SPARKLER_DEBUG
+        Intersection ittmp = children[i]->traverse(ray, min_t, stat_depth + 1);
+#else
         Intersection ittmp = children[i]->traverse(ray, min_t);
+#endif
         if (ittmp.hit && ittmp.t < min_t) {
           min_t = ittmp.t;
           it = ittmp;

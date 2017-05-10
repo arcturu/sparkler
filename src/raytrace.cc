@@ -27,9 +27,13 @@ uint8_t saturate(double x, uint8_t limit) {
 
 Pixel<uint8_t> shade(Intersection it, std::vector<Light> ls) {
   Pixel<uint8_t> pix;
+#ifdef SPARKLER_DEBUG
+  pix.r = pix.g = pix.b = it.stat_depth;
+#else
   for (auto l = ls.begin(); l != ls.end(); ++l) {
     pix.r = pix.g = pix.b = saturate(pix.r + it.n.dot(l->p - it.p) / 4.0 / M_PI / std::pow((it.p - l->p).length(), 2) * l->luminance, 255);
   }
+#endif
   return pix;
 }
 
