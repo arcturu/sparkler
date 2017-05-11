@@ -20,7 +20,7 @@ class AccelNode {
   Vector3d p, m; // p: +xyz, n: -xyz boundery
 
   void dump();
-  Intersection traverse(const Ray& ray);
+  Intersection traverse(const Ray& ray, double min_t);
 };
 
 class AccelStructure {

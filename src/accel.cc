@@ -110,10 +110,11 @@ AccelBvh::AccelBvh(std::shared_ptr<Geometry> geo_) : AccelStructure(geo_) {
 }
 
 Intersection AccelBvh::intersect(const Ray& ray) {
-  return root->traverse(ray);
+  const double min_t = std::numeric_limits<double>::infinity();
+  return root->traverse(ray, min_t);
 }
 
-bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray) {
+bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray, double *t_hit = nullptr) {
   double t_max = std::numeric_limits<double>::infinity();
   double t_min = -std::numeric_limits<double>::infinity();
   double t1, t2, t_far, t_near;
@@ -151,12 +152,12 @@ bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray) {
     return false;
   }
 
+  *t_hit = t_min;
   return true;
 }
 
-Intersection AccelNode::traverse(const Ray& ray) {
+Intersection AccelNode::traverse(const Ray& ray, double min_t) {
   Intersection it;
-  double min_t = std::numeric_limits<double>::infinity();
   if (children.size() == 0) { // it's a leef
     for (auto f = faces.begin(); f != faces.end(); ++f) {
       Intersection ittmp = Geometry::intersectTriangle(*f, ray);
@@ -166,9 +167,11 @@ Intersection AccelNode::traverse(const Ray& ray) {
       }
     }
   } else {
+    double t;
     for (int i = 0; i < children.size(); i++) {
-      if (intersectBox(children[i]->m, children[i]->p, ray)) {
-        Intersection ittmp = children[i]->traverse(ray);
+      bool hit = intersectBox(children[i]->m, children[i]->p, ray, &t);
+      if (hit && t < min_t) {
+        Intersection ittmp = children[i]->traverse(ray, min_t);
         if (ittmp.hit && ittmp.t < min_t) {
           min_t = ittmp.t;
           it = ittmp;
