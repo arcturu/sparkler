@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
       cam.up(up);
       Vector3d p = c;
       double r = geo.r();
-      p.x += 10.3 * r;
+      p.x(p.x() + 10.3 * r);
       cam.p(p);
       cam.film.z = 10 * r;
     }

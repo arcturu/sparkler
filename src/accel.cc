@@ -23,9 +23,9 @@ Intersection AccelNaive::intersect(const Ray& ray) {
 }
 
 bool belongs(Vector3d v, Vector3d m, Vector3d p) {
-  return v.x >= m.x && v.x <= p.x &&
-         v.y >= m.y && v.y <= p.y &&
-         v.z >= m.z && v.z <= p.z;
+  return v.x() >= m.x() && v.x() <= p.x() &&
+         v.y() >= m.y() && v.y() <= p.y() &&
+         v.z() >= m.z() && v.z() <= p.z();
 }
 
 Aabb boundingBox(const std::vector<Face>& fs) {
@@ -33,12 +33,12 @@ Aabb boundingBox(const std::vector<Face>& fs) {
   Vector3d p(-inf, -inf, -inf), m(inf, inf, inf);
   for (auto f = fs.begin(); f != fs.end(); ++f) {
     for (auto v = f->vs.begin(); v != f->vs.end(); ++v) {
-      if (p.x < v->p->x) { p.x = v->p->x; }
-      if (p.y < v->p->y) { p.y = v->p->y; }
-      if (p.z < v->p->z) { p.z = v->p->z; }
-      if (m.x > v->p->x) { m.x = v->p->x; }
-      if (m.y > v->p->y) { m.y = v->p->y; }
-      if (m.z > v->p->z) { m.z = v->p->z; }
+      if (p.x() < v->p->x()) { p.x(v->p->x()); }
+      if (p.y() < v->p->y()) { p.y(v->p->y()); }
+      if (p.z() < v->p->z()) { p.z(v->p->z()); }
+      if (m.x() > v->p->x()) { m.x(v->p->x()); }
+      if (m.y() > v->p->y()) { m.y(v->p->y()); }
+      if (m.z() > v->p->z()) { m.z(v->p->z()); }
     }
   }
   Aabb a(p, m);
@@ -124,8 +124,8 @@ bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray, double *
 
   *t_hit = t_max;
 
-  t1 = (m.x - ray.src.x) / ray.dir.x;
-  t2 = (p.x - ray.src.x) / ray.dir.x;
+  t1 = (m.x() - ray.src.x()) / ray.dir.x();
+  t2 = (p.x() - ray.src.x()) / ray.dir.x();
   t_far = std::max(t1, t2);
   t_near = std::min(t1, t2);
   t_max = std::min(t_max, t_far);
@@ -135,8 +135,8 @@ bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray, double *
     return false;
   }
 
-  t1 = (m.y - ray.src.y) / ray.dir.y;
-  t2 = (p.y - ray.src.y) / ray.dir.y;
+  t1 = (m.y() - ray.src.y()) / ray.dir.y();
+  t2 = (p.y() - ray.src.y()) / ray.dir.y();
   t_far = std::max(t1, t2);
   t_near = std::min(t1, t2);
   t_max = std::min(t_max, t_far);
@@ -146,8 +146,8 @@ bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray, double *
     return false;
   }
 
-  t1 = (m.z - ray.src.z) / ray.dir.z;
-  t2 = (p.z - ray.src.z) / ray.dir.z;
+  t1 = (m.z() - ray.src.z()) / ray.dir.z();
+  t2 = (p.z() - ray.src.z()) / ray.dir.z();
   t_far = std::max(t1, t2);
   t_near = std::min(t1, t2);
   t_max = std::min(t_max, t_far);

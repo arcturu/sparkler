@@ -73,9 +73,9 @@ Geometry ParseObj(const char *path) {
       }
       geo.fs.push_back(f);
     } else if (command == "#objx-l") { //[extension] light; x y z luminance
-      Vector3d v;
-      double l;
-      sline >> v.x >> v.y >> v.z >> l;
+      double x, y, z, l;
+      sline >> x >> y >> z >> l;
+      Vector3d v(x, y, z);
       geo.ls.emplace_back(v, l);
     } else if (command.size() > 0 && command[0] == '#') {
       // skip comment
@@ -99,13 +99,15 @@ Camera ParseObjxCamera(const char *path, bool *st) {
     std::string command;
     sline >> command;
     if (command == "#objx-cp") { // [extension] camera position
-      Vector3d v;
-      sline >> v.x >> v.y >> v.z;
+      double x, y, z;
+      sline >> x >> y >> z;
+      Vector3d v(x, y, z);
       cam.p(v);
       bcp = true;
     } else if (command == "#objx-up") { // [extension] up direction
-      Vector3d v;
-      sline >> v.x >> v.y >> v.z;
+      double x, y, z;
+      sline >> x >> y >> z;
+      Vector3d v(x, y, z);
       cam.up(v);
       bup = true;
     } else if (command == "#objx-d") { // [extension] film depth
