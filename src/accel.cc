@@ -164,6 +164,7 @@ bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray, double *
 Intersection AccelNode::traverseLoop(const Ray& ray) {
   Intersection it;
   std::vector<AccelNode *> ns;
+  ns.reserve(10);
   double min_t = std::numeric_limits<double>::infinity();
   double t;
   int stat_max_num_ns = 0;
@@ -195,7 +196,9 @@ Intersection AccelNode::traverseLoop(const Ray& ray) {
       stat_max_num_ns = ns.size();
     }
   }
-//  std::cout << "[stat] max_num_ns: " << stat_max_num_ns << std::endl;
+//  if (stat_max_num_ns > 10) {
+//    std::cout << "[stat] max_num_ns: " << stat_max_num_ns << std::endl;
+//  }
   return it;
 }
 
