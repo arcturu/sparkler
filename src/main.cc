@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
     Image<uint8_t> img = raytrace(cam, geo, accel);
     t2 = Clock::now();
     int time = MS(t2 - t1);
-    Logger::info(std::string("Raytracing finished in ") + std::to_string(time) + " ms (" + std::to_string(img.width() * img.height() / time * 1000) + " rps)");
+    Logger::info(std::string("Raytracing finished in ") + std::to_string(time) + " ms (" + std::to_string((double)img.width() * img.height() / time * 1000 / 1000 / 1000) + " Mrps)");
 
     Logger::info("Outputting");
     img.outputPpm("out.ppm");
