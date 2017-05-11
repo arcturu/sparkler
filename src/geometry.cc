@@ -76,7 +76,7 @@ Intersection Geometry::intersectTriangle(const Face& f, const Ray& ray) {
     if (f.vs[0].n && f.vs[1].n && f.vs[2].n) {
       it.n = (va / vsum * *f.vs[0].n + vb / vsum * *f.vs[1].n + vc / vsum * *f.vs[2].n).normalize();
     } else {
-      it.n = -plane_n.normalize();
+      it.n = plane_n.normalize();
     }
   }
   return it;
