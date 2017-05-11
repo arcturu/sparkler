@@ -1,5 +1,6 @@
 #include <cmath>
 #include <memory>
+#include <immintrin.h>
 #include "accel.h"
 #include "constant.h"
 #include "exception.h"
@@ -117,20 +118,54 @@ Intersection AccelBvh::intersect(const Ray& ray) {
 */
 }
 
+void vec_add(const size_t n, double *z, const double *x, const double *y){
+    static const size_t double_size = 4;
+    const size_t end = n / double_size;
+
+    __m256d *vz = (__m256d *)z;
+    __m256d *vx = (__m256d *)x;
+    __m256d *vy = (__m256d *)y;
+
+    for(size_t i=0; i<end; ++i)
+        vz[i] = _mm256_add_pd(vx[i], vy[i]);
+}
+
 bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray, double *t_hit = nullptr) {
   double t_max = std::numeric_limits<double>::infinity();
   double t_min = -std::numeric_limits<double>::infinity();
-  double t1, t2, t_far, t_near;
+  double t_far[4], t_near[4];
 
   *t_hit = t_max;
 
+  __m256d *vt_far = (__m256d *)t_far;
+  __m256d *vt_near = (__m256d *)t_near;
+  __m256d *vm = (__m256d *)m.p;
+  __m256d *vp = (__m256d *)p.p;
+  __m256d *vrs = (__m256d *)ray.src.p;
+  __m256d *vrd = (__m256d *)ray.dir.p;
+  __m256d vt1 = _mm256_div_pd(_mm256_sub_pd(*vm, *vrs), *vrd);
+  __m256d vt2 = _mm256_div_pd(_mm256_sub_pd(*vp, *vrs), *vrd);
+  *vt_far = _mm256_max_pd(vt1, vt2);
+  *vt_near = _mm256_min_pd(vt1, vt2);
+
+
+//  std::cout << m.toString() << p.toString() << ray.src.toString() << ray.dir.toString() << std::endl;
+//  for (int i = 0; i < 4; i++) {
+//    std::cout << t1[i] << " ";
+//  }
+//  std::cout << std::endl;
+//  for (int i = 0; i < 4; i++) {
+//    std::cout << t2[i] << " ";
+//  }
+//  std::cout << std::endl;
+
   for (int i = 0; i < 3; i++) {
-    t1 = (m.p[i] - ray.src.p[i]) / ray.dir.p[i];
-    t2 = (p.p[i] - ray.src.p[i]) / ray.dir.p[i];
-    t_far = std::max(t1, t2);
-    t_near = std::min(t1, t2);
-    t_max = std::min(t_max, t_far);
-    t_min = std::max(t_min, t_near);
+//    t1 = (m.p[i] - ray.src.p[i]) / ray.dir.p[i];
+//    t2 = (p.p[i] - ray.src.p[i]) / ray.dir.p[i];
+//    t_far = std::max(t1[i], t2[i]);
+//    t_near = std::min(t1[i], t2[i]);
+    t_max = std::min(t_max, t_far[i]);
+    t_min = std::max(t_min, t_near[i]);
 
     if (t_max < t_min) {
       return false;

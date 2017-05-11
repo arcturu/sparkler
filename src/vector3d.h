@@ -6,7 +6,7 @@
 
 class Vector3d {
  public:
-  double p[3];
+  double p[4];
 
   Vector3d() { p[0] = 0; p[1] = 0; p[2] = 0; }
   Vector3d(double x, double y, double z) { p[0] = x; p[1] = y; p[2] = z; }
