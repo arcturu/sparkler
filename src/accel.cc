@@ -66,7 +66,7 @@ std::unique_ptr<AccelNode> separateGeometryBvh(std::vector<Face> fs) {
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < SEARCH_DIV_RES; j++) {
         Vector3d tmp_p = n->p;
-        tmp_p[i] = n->m[i] + (n->p[i] - n->m[i]) / SEARCH_DIV_RES * j;
+        tmp_p.p[i] = n->m[i] + (n->p[i] - n->m[i]) / SEARCH_DIV_RES * j;
 
         std::vector<Face> tmp_fs1, tmp_fs2;
         for (auto f = fs.begin(); f != fs.end(); ++f) {
@@ -124,37 +124,17 @@ bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray, double *
 
   *t_hit = t_max;
 
-  t1 = (m.x() - ray.src.x()) / ray.dir.x();
-  t2 = (p.x() - ray.src.x()) / ray.dir.x();
-  t_far = std::max(t1, t2);
-  t_near = std::min(t1, t2);
-  t_max = std::min(t_max, t_far);
-  t_min = std::max(t_min, t_near);
+  for (int i = 0; i < 3; i++) {
+    t1 = (m.p[i] - ray.src.p[i]) / ray.dir.p[i];
+    t2 = (p.p[i] - ray.src.p[i]) / ray.dir.p[i];
+    t_far = std::max(t1, t2);
+    t_near = std::min(t1, t2);
+    t_max = std::min(t_max, t_far);
+    t_min = std::max(t_min, t_near);
 
-  if (t_max < t_min) {
-    return false;
-  }
-
-  t1 = (m.y() - ray.src.y()) / ray.dir.y();
-  t2 = (p.y() - ray.src.y()) / ray.dir.y();
-  t_far = std::max(t1, t2);
-  t_near = std::min(t1, t2);
-  t_max = std::min(t_max, t_far);
-  t_min = std::max(t_min, t_near);
-
-  if (t_max < t_min) {
-    return false;
-  }
-
-  t1 = (m.z() - ray.src.z()) / ray.dir.z();
-  t2 = (p.z() - ray.src.z()) / ray.dir.z();
-  t_far = std::max(t1, t2);
-  t_near = std::min(t1, t2);
-  t_max = std::min(t_max, t_far);
-  t_min = std::max(t_min, t_near);
-
-  if (t_max < t_min) {
-    return false;
+    if (t_max < t_min) {
+      return false;
+    }
   }
 
   *t_hit = t_min;
