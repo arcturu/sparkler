@@ -142,20 +142,20 @@ bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray, double *
 }
 
 Intersection AccelNode::traverseLoop(const Ray& ray) {
+  static NodeStore ns;
+
   Intersection it;
-  std::vector<AccelNode *> ns;
-  ns.reserve(10);
   double min_t = std::numeric_limits<double>::infinity();
   double t;
   int stat_max_num_ns = 0;
   for (int i = 0; i < children.size(); i++) {
     if (intersectBox(children[i]->m, children[i]->p, ray, &t)) {
-      ns.push_back(children[i].get());
+      ns.push(children[i].get());
     }
   }
   while (!ns.empty()) {
     // TODO: improve search order
-    AccelNode *n = ns[ns.size() - 1]; ns.pop_back();
+    AccelNode *n = ns.top(); ns.pop();
     if (n->children.size() == 0) { // n is a leef node
       for (int i = 0; i < n->faces.size(); i++) {
         Intersection tmp_it = Geometry::intersectTriangle(n->faces[i], ray);
@@ -168,7 +168,7 @@ Intersection AccelNode::traverseLoop(const Ray& ray) {
       for (int i = 0; i < n->children.size(); i++) {
         bool hit = intersectBox(n->children[i]->m, n->children[i]->p, ray, &t);
         if (hit && t < min_t) {
-          ns.push_back(n->children[i].get());
+          ns.push(n->children[i].get());
         }
       }
     }

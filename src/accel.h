@@ -2,6 +2,7 @@
 #define ACCEL_H_
 
 #include "geometry.h"
+#include <stack>
 
 class Aabb {
  public:
@@ -23,6 +24,8 @@ class AccelNode {
   Intersection traverseLoop(const Ray& ray);
   Intersection traverse(const Ray& ray, double min_t);
 };
+
+class NodeStore : public std::stack<AccelNode *> {};
 
 class AccelStructure {
  public:
