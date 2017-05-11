@@ -110,14 +110,19 @@ AccelBvh::AccelBvh(std::shared_ptr<Geometry> geo_) : AccelStructure(geo_) {
 }
 
 Intersection AccelBvh::intersect(const Ray& ray) {
+  return root->traverseLoop(ray);
+/*
   const double min_t = std::numeric_limits<double>::infinity();
   return root->traverse(ray, min_t);
+*/
 }
 
 bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray, double *t_hit = nullptr) {
   double t_max = std::numeric_limits<double>::infinity();
   double t_min = -std::numeric_limits<double>::infinity();
   double t1, t2, t_far, t_near;
+
+  *t_hit = t_max;
 
   t1 = (m.x - ray.src.x) / ray.dir.x;
   t2 = (p.x - ray.src.x) / ray.dir.x;
@@ -154,6 +159,44 @@ bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray, double *
 
   *t_hit = t_min;
   return true;
+}
+
+Intersection AccelNode::traverseLoop(const Ray& ray) {
+  Intersection it;
+  std::vector<AccelNode *> ns;
+  double min_t = std::numeric_limits<double>::infinity();
+  double t;
+  int stat_max_num_ns = 0;
+  for (int i = 0; i < children.size(); i++) {
+    if (intersectBox(children[i]->m, children[i]->p, ray, &t)) {
+      ns.push_back(children[i].get());
+    }
+  }
+  while (!ns.empty()) {
+    // TODO: improve search order
+    AccelNode *n = ns[ns.size() - 1]; ns.pop_back();
+    if (n->children.size() == 0) { // n is a leef node
+      for (int i = 0; i < n->faces.size(); i++) {
+        Intersection tmp_it = Geometry::intersectTriangle(n->faces[i], ray);
+        if (tmp_it.hit && tmp_it.t < min_t) {
+          min_t = tmp_it.t;
+          it = tmp_it;
+        }
+      }
+    } else {
+      for (int i = 0; i < n->children.size(); i++) {
+        bool hit = intersectBox(n->children[i]->m, n->children[i]->p, ray, &t);
+        if (hit && t < min_t) {
+          ns.push_back(n->children[i].get());
+        }
+      }
+    }
+    if (stat_max_num_ns < ns.size()) {
+      stat_max_num_ns = ns.size();
+    }
+  }
+//  std::cout << "[stat] max_num_ns: " << stat_max_num_ns << std::endl;
+  return it;
 }
 
 Intersection AccelNode::traverse(const Ray& ray, double min_t) {
