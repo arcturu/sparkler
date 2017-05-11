@@ -116,18 +116,41 @@ Intersection AccelBvh::intersect(const Ray& ray) {
 bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray) {
   double t_max = std::numeric_limits<double>::infinity();
   double t_min = -std::numeric_limits<double>::infinity();
-  for (int i = 0; i < 3; ++i) {
-    double t1 = (m[i] - ray.src[i]) / ray.dir[i];
-    double t2 = (p[i] - ray.src[i]) / ray.dir[i];
-    double t_far = std::max(t1, t2);
-    double t_near = std::min(t1, t2);
-    t_max = std::min(t_max, t_far);
-    t_min = std::max(t_min, t_near);
+  double t1, t2, t_far, t_near;
 
-    if (t_max < t_min) {
-      return false;
-    }
+  t1 = (m.x - ray.src.x) / ray.dir.x;
+  t2 = (p.x - ray.src.x) / ray.dir.x;
+  t_far = std::max(t1, t2);
+  t_near = std::min(t1, t2);
+  t_max = std::min(t_max, t_far);
+  t_min = std::max(t_min, t_near);
+
+  if (t_max < t_min) {
+    return false;
   }
+
+  t1 = (m.y - ray.src.y) / ray.dir.y;
+  t2 = (p.y - ray.src.y) / ray.dir.y;
+  t_far = std::max(t1, t2);
+  t_near = std::min(t1, t2);
+  t_max = std::min(t_max, t_far);
+  t_min = std::max(t_min, t_near);
+
+  if (t_max < t_min) {
+    return false;
+  }
+
+  t1 = (m.z - ray.src.z) / ray.dir.z;
+  t2 = (p.z - ray.src.z) / ray.dir.z;
+  t_far = std::max(t1, t2);
+  t_near = std::min(t1, t2);
+  t_max = std::min(t_max, t_far);
+  t_min = std::max(t_min, t_near);
+
+  if (t_max < t_min) {
+    return false;
+  }
+
   return true;
 }
 
