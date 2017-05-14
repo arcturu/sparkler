@@ -4,7 +4,7 @@ CXXFLAGS = -Wall -std=c++14 -O3
 SDIR = src
 ODIR = build
 SRCS = $(patsubst $(SDIR)/%, %, $(wildcard $(SDIR)/*.cc))
-OBJS = $(addprefix $(ODIR)/, $(patsubst %.cc, %.o, $(SRCS)))
+OBJS = $(addprefix $(ODIR)/, $(patsubst %.cc, %.o, $(SRCS))) lib/json11/json11.o
 
 .PHONY: all clean
 all: $(TARGET)

@@ -5,25 +5,60 @@
 #include "geometry.h"
 #include "exception.h"
 #include "constant.h"
+#include "accel.h"
 
-void Geometry::dump() {
+void Scene::dump() {
   // dump statistics
-  std::cout << "#vertices: " << ps.size() << std::endl;
-  std::cout << " #normals: " << ns.size() << std::endl;
-  std::cout << "   #faces: " << fs.size() << std::endl;
-  std::cout << "   center: " << center().toString() << std::endl;
-  std::cout << "        r: " << r() << std::endl;
-  for (auto l = ls.begin(); l != ls.end(); ++l) {
-    std::cout << "    light: " << "at " << l->p.toString() << " luminance = " << l->luminance << std::endl;
+  std::cout << "#vertices: " << vertexCount() << std::endl;
+  std::cout << " #normals: " << normalCount() << std::endl;
+  std::cout << "   #faces: " << faceCount() << std::endl;
+//  std::cout << "   center: " << center().toString() << std::endl;
+//  std::cout << "        r: " << r() << std::endl;
+  for (const auto& l : lights) {
+    std::cout << "    light: " << "at " << l.p.toString() << " luminance = " << l.luminance << " (r, g, b) = (" << l.color.r << ", " << l.color.g << ", " << l.color.b << ")" << std::endl;
   }
+  std::cout << "   camera: p = " << camera.p().toString() << std::endl;
+  std::cout << "   camera: u = " << camera.u().toString() << std::endl;
+  std::cout << "   camera: v = " << camera.v().toString() << std::endl;
+  std::cout << "   camera: w = " << camera.w().toString() << std::endl;
+  std::cout << "   camera: d = " << camera.film.distance() << std::endl;
 }
 
-void Camera::dump() {
-  std::cout << "   camera: p = " << p().toString() << std::endl;
-  std::cout << "   camera: u = " << u().toString() << std::endl;
-  std::cout << "   camera: v = " << v().toString() << std::endl;
-  std::cout << "   camera: w = " << w().toString() << std::endl;
-  std::cout << "   camera: d = " << film.z << std::endl;
+Intersection Scene::intersect(const Ray& ray) {
+  Intersection tmp_it;
+  Intersection min_it;
+  min_it.t = std::numeric_limits<double>::infinity();
+  for (const auto& object : objects) {
+    tmp_it = object.intersect(ray);
+    if (min_it.t > tmp_it.t) {
+      min_it = tmp_it;
+    }
+  }
+  return min_it;
+}
+
+int Scene::vertexCount() {
+  int count = 0;
+  for (const auto& obj : objects) {
+    count += obj.ps.size();
+  }
+  return count;
+}
+
+int Scene::normalCount() {
+  int count = 0;
+  for (const auto& obj : objects) {
+    count += obj.ns.size();
+  }
+  return count;
+}
+
+int Scene::faceCount() {
+  int count = 0;
+  for (const auto& obj : objects) {
+    count += obj.fs.size();
+  }
+  return count;
 }
 
 double Geometry::r() {
@@ -82,6 +117,34 @@ Intersection Geometry::intersectTriangle(const Face& f, const Ray& ray) {
   return it;
 }
 
+Intersection Geometry::intersectNaive(const Ray& ray) const {
+  Intersection it;
+  double min_t = std::numeric_limits<double>::infinity();
+
+  for (const auto& f : fs) {
+    Intersection ittmp = Geometry::intersectTriangle(f, ray);
+    if (ittmp.hit && ittmp.t >= 0 && ittmp.t < min_t) {
+      min_t = ittmp.t;
+      it = ittmp;
+    }
+  }
+
+  return it;
+}
+
+
+Intersection Geometry::intersect(const Ray& ray) const {
+  Intersection it = root->traverseLoop(ray);
+  if (it.hit) {
+    it.material = material;
+  }
+  return it;
+}
+
+void Geometry::prepare() {
+  root = separateGeometryBvh(fs);
+}
+
 void Camera::up(Vector3d up) {
   up_ = up;
   v_ = w_.cross(up_);
@@ -96,4 +159,26 @@ void Camera::w(Vector3d w) {
   w_ = w;
   v_ = w_.cross(up_);
   u_ = v_.cross(w_);
+}
+
+void Film::fromFov(int pix_w, int pix_h, double size_x, double fov_deg) {
+  pix_w_ = pix_w;
+  pix_h_ = pix_h;
+  fov_ = fov_deg / 360 * 2 * M_PI;
+  w_ = size_x;
+
+  z_ = size_x / 2 / tan(fov_ / 2);
+  res_ = size_x / pix_w;
+  h_ = res_ * pix_h;
+}
+
+void Film::fromRes(double w, double h, double z, double res) {
+  w_ = w;
+  h_ = h;
+  z_ = z;
+  res_ = res;
+
+  pix_w_ = w_ / res_;
+  pix_h_ = h_ / res_;
+  fov_ = 2 * atan(w_ / 2 / z_);
 }

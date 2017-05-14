@@ -15,7 +15,7 @@ class Exception : std::exception {
  public:
   Exception(const std::string& aMessage, const char *aFile, const char *aFunc, int aLine) : message(aMessage), file(aFile), func(aFunc), line(aLine) {}
   const char *what() const throw() {
-    return (std::string("Excepton: ") + message + "\nFile: " + file + "\nFunc: " + func + "\nLine: " + std::to_string(line)).c_str();
+    return (message + "\nFile: " + file + "\nFunc: " + func + "\nLine: " + std::to_string(line)).c_str();
   }
 };
 

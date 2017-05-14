@@ -7,6 +7,7 @@
 
 #include <iostream>
 
+/*
 Intersection AccelNaive::intersect(const Ray& ray) {
   Intersection it;
   double min_t = std::numeric_limits<double>::infinity();
@@ -21,6 +22,7 @@ Intersection AccelNaive::intersect(const Ray& ray) {
 
   return it;
 }
+*/
 
 bool belongs(Vector3d v, Vector3d m, Vector3d p) {
   return v.x() >= m.x() && v.x() <= p.x() &&
@@ -104,19 +106,6 @@ std::unique_ptr<AccelNode> separateGeometryBvh(std::vector<Face> fs) {
   return n;
 }
 
-// prepare BVH
-AccelBvh::AccelBvh(std::shared_ptr<Geometry> geo_) : AccelStructure(geo_) {
-  root = separateGeometryBvh(geo_->fs);
-}
-
-Intersection AccelBvh::intersect(const Ray& ray) {
-  return root->traverseLoop(ray);
-/*
-  const double min_t = std::numeric_limits<double>::infinity();
-  return root->traverse(ray, min_t);
-*/
-}
-
 bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray, double *t_hit = nullptr) {
   double t_max = std::numeric_limits<double>::infinity();
   double t_min = -std::numeric_limits<double>::infinity();
@@ -159,7 +148,7 @@ Intersection AccelNode::traverseLoop(const Ray& ray) {
     if (n->children.size() == 0) { // n is a leef node
       for (int i = 0; i < n->faces.size(); i++) {
         Intersection tmp_it = Geometry::intersectTriangle(n->faces[i], ray);
-        if (tmp_it.hit && tmp_it.t < min_t) {
+        if (tmp_it.hit && tmp_it.t >= 0 && tmp_it.t < min_t) {
           min_t = tmp_it.t;
           it = tmp_it;
         }

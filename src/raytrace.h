@@ -3,8 +3,7 @@
 
 #include "image.h"
 #include "geometry.h"
-#include "accel.h"
 
-Image<uint8_t> raytrace(Camera cam, Geometry geo, AccelStructure& accel);
+Image<uint8_t> raytrace(Scene& scene);
 
 #endif

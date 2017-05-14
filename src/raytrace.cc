@@ -5,11 +5,11 @@
 #include "image.h"
 #include "geometry.h"
 
-Ray generateCameraRay(Camera cam, int x, int y) {
+Ray generateCameraRay(const Camera& cam, int x, int y) {
   Ray r;
-  r.src = (cam.film.res * (y + 0.5) - cam.film.h / 2.0) * cam.u()
-    + (cam.film.res * (x + 0.5) - cam.film.w / 2.0) * cam.v()
-    + cam.film.z * cam.w()
+  r.src = (cam.film.resolution() * (y + 0.5) - cam.film.height() / 2.0) * cam.u()
+    + (cam.film.resolution() * (x + 0.5) - cam.film.width() / 2.0) * cam.v()
+    + cam.film.distance() * cam.w()
     + cam.p();
   r.dir = (r.src - cam.p()).normalize();
   return r;
@@ -25,25 +25,29 @@ uint8_t saturate(double x, uint8_t limit) {
   }
 }
 
+// TODO: support other types of lights
 Pixel<uint8_t> shade(Intersection it, std::vector<Light> ls) {
   Pixel<uint8_t> pix;
-  for (auto l = ls.begin(); l != ls.end(); ++l) {
-    pix.r = pix.g = pix.b = saturate(pix.r + it.n.dot(l->p - it.p) / 4.0 / M_PI / std::pow((it.p - l->p).length(), 2) * l->luminance, 255);
+  for (const auto& l : ls) {
+    double dist = (l.p - it.p).length();
+    pix.r += saturate(l.color.r * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 10, 255);
+    pix.g += saturate(l.color.g * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 10, 255);
+    pix.b += saturate(l.color.b * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 10, 255);
   }
   return pix;
 }
 
-Image<uint8_t> raytrace(Camera cam, Geometry geo, AccelStructure &accel) {
-  Image<uint8_t> img(cam.film.w / cam.film.res, cam.film.h / cam.film.res);
+Image<uint8_t> raytrace(Scene& scene) {
+  Image<uint8_t> img(scene.camera.film.xpixels(), scene.camera.film.ypixels());
 
   for (int y = 0; y < img.height(); y++) {
     for (int x = 0; x < img.width(); x++) {
-      Ray r = generateCameraRay(cam, x, y);
+      Ray r = generateCameraRay(scene.camera, x, y);
 
-      Intersection it = accel.intersect(r);
+      Intersection it = scene.intersect(r);
       if (it.hit) {
-//        img.m[y][x].r = it.n.x * 255; img.m[y][x].g = it.n.y * 255; img.m[y][x].b = it.n.z * 255;
-        img.m[y][x] = shade(it, geo.ls);
+//        img.m[y][x].r = it.n.x() * 255; img.m[y][x].g = it.n.y() * 255; img.m[y][x].b = it.n.z() * 255;
+        img.m[y][x] = shade(it, scene.lights);
       }
     }
   }
