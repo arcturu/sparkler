@@ -40,14 +40,13 @@ Geometry ParseObj(const std::string path) {
     if (command == "v") {
       double x, y, z;
       sline >> x >> y >> z;
-      Vector3d v(x, y, z);
-      geo.ps.push_back(v);
+      geo.ps.push_back(std::make_shared<Vector3d>(x, y, z));
 //    } else if (command == "vt") {
     } else if (command == "vn") {
       double x, y, z;
       sline >> x >> y >> z;
       Vector3d n(x, y, z);
-      geo.ns.push_back(n.normalize());
+      geo.ns.push_back(std::make_shared<Vector3d>(n.normalize()));
     } else if (command == "f") {
       std::string term;
       Face f;
@@ -63,13 +62,13 @@ Geometry ParseObj(const std::string path) {
           THROW_EXCEPTION("Invalid face term");
         }
         if (tokens[0].size() > 0) {
-          v.p = std::make_shared<Vector3d>(geo.ps[std::stoi(tokens[0])-1]);
+          v.p = geo.ps[std::stoi(tokens[0])-1];
         }
         if (tokens.size() >= 2 && tokens[1].size() > 0) {
 //          fc.vt = std::stoi(tokens[1]); // TODO
         }
         if (tokens.size() >= 3 && tokens[2].size() > 0) {
-          v.n = std::make_shared<Vector3d>(geo.ns[std::stoi(tokens[2])-1]);
+          v.n = geo.ns[std::stoi(tokens[2])-1];
         }
         f.vs.push_back(v);
       }
@@ -126,6 +125,15 @@ Vector3d to_v3d(const json11::Json& json) {
   return v;
 }
 
+template <typename T>
+Vector3d to_v3d(const T v) {
+  Vector3d v3;
+  for (int i = 0; i < 3; i++) {
+    v3[i] = v[i];
+  }
+  return v3;
+}
+
 Scene ParseScene(const char *path) {
   Scene scene;
   std::ifstream ifs(path);
@@ -140,15 +148,17 @@ Scene ParseScene(const char *path) {
   }
 //  if (json["camera"]) {
     json11::Json jcam = json["camera"];
-//    if (!jcam["size"])     { THROW_EXCEPTION("camera.size is not defined"); }
-//    if (!jcam["fov"])      { THROW_EXCEPTION("camera.fov is not defined"); }
-//    if (!jcam["position"]) { THROW_EXCEPTION("camera.position is not defined"); }
-//    if (!jcam["look-at"])  { THROW_EXCEPTION("camera.look-at is not defined"); }
-//    if (!jcam["up"])       { THROW_EXCEPTION("camera.up is not defined"); }
-//    if (!jcam["bg-color"]) { THROW_EXCEPTION("camera.bg-color is not defined"); }
+    if (jcam["size"].is_null())     { THROW_EXCEPTION("camera.size is not defined"); }
+    if (jcam["pixels"].is_null())   { THROW_EXCEPTION("camera.pixels is not defined"); }
+    if (jcam["fov"].is_null())      { THROW_EXCEPTION("camera.fov is not defined"); }
+    if (jcam["position"].is_null()) { THROW_EXCEPTION("camera.position is not defined"); }
+    if (jcam["look-at"].is_null())  { THROW_EXCEPTION("camera.look-at is not defined"); }
+    if (jcam["up"].is_null())       { THROW_EXCEPTION("camera.up is not defined"); }
+    if (jcam["bg-color"].is_null()) { THROW_EXCEPTION("camera.color is not defined"); }
     scene.camera.up(to_v3d(jcam["up"]));
     scene.camera.p(to_v3d(jcam["position"]));
     scene.camera.w((to_v3d(jcam["look-at"]) - scene.camera.p()).normalize());
+    scene.camera.bgColor(Color(to_v3d(jcam["bg-color"])));
     scene.camera.film.fromFov(jcam["pixels"][0].int_value(),
                               jcam["pixels"][1].int_value(),
                               jcam["size"].number_value(),
@@ -164,6 +174,28 @@ Scene ParseScene(const char *path) {
   for (const auto& jobj : json["geometry"].array_items()) {
     Logger::info(std::string("loading ") + jobj["file"].string_value());
     Geometry geo = ParseObj(jobj["file"].string_value());
+    if (!jobj["transform"].is_null()) {
+      double M[4][4];
+      for (int i = 0; i < 4; i++ ){
+        for (int j = 0; j < 4; j++) {
+          M[i][j] = jobj["transform"][i][j].number_value();
+        }
+      }
+      for (const auto& p : geo.ps) {
+        double v[4];
+        for (int i = 0; i < 3; i++) {
+          v[i] = (*p)[i];
+          (*p)[i] = 0;
+        }
+        v[3] = 1;
+        for (int i = 0; i < 3; i++) {
+          for (int j = 0; j < 4; j++) {
+            (*p)[i] += M[i][j] * v[j];
+          }
+        }
+      }
+    }
+    geo.dump();
     geo.prepare(); // construct accel structure
     geo.material = static_cast<Material>(jobj["material"].int_value());
     scene.objects.push_back(std::move(geo));

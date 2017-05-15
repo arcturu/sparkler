@@ -30,7 +30,7 @@ Intersection Scene::intersect(const Ray& ray) {
   min_it.t = std::numeric_limits<double>::infinity();
   for (const auto& object : objects) {
     tmp_it = object.intersect(ray);
-    if (min_it.t > tmp_it.t) {
+    if (tmp_it.hit && tmp_it.t >= 0 && min_it.t > tmp_it.t) {
       min_it = tmp_it;
     }
   }
@@ -61,11 +61,19 @@ int Scene::faceCount() {
   return count;
 }
 
+void Geometry::dump() {
+  std::cout << "#vertices: " << ps.size() << std::endl;
+  std::cout << " #normals: " << ns.size() << std::endl;
+  std::cout << "   #faces: " << fs.size() << std::endl;
+  std::cout << "   center: " << center().toString() << std::endl;
+  std::cout << "        r: " << r() << std::endl;
+}
+
 double Geometry::r() {
   double r = 0;
   Vector3d c = center();
-  for (auto v = ps.begin(); v !=  ps.end(); ++v) {
-    double dist = (*v - c).length();
+  for (const auto& p : ps) {
+    double dist = (*p - c).length();
     if (dist > r) {
       r = dist;
     }
@@ -75,8 +83,8 @@ double Geometry::r() {
 
 Vector3d Geometry::center() {
   Vector3d c;
-  for (auto v = ps.begin(); v != ps.end(); ++v) {
-    c = c + *v;
+  for (const auto& p : ps) {
+    c = c + *p;
   }
   c = c / ps.size();
   return c;

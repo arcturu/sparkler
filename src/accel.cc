@@ -57,8 +57,8 @@ double costSeparationBvh(const std::vector<Face>& fs1, const std::vector<Face>& 
 
 std::unique_ptr<AccelNode> separateGeometryBvh(std::vector<Face> fs) {
   std::unique_ptr<AccelNode> n(new AccelNode);
-  const int SEARCH_DIV_RES = 10;
-  const int MIN_OBJS = 2;
+  const int SEARCH_DIV_RES = 2;
+  const int MIN_OBJS = 20;
   Aabb a = boundingBox(fs);
   n->p = a.p;
   n->m = a.m;
@@ -137,11 +137,7 @@ Intersection AccelNode::traverseLoop(const Ray& ray) {
   double min_t = std::numeric_limits<double>::infinity();
   double t;
   int stat_max_num_ns = 0;
-  for (int i = 0; i < children.size(); i++) {
-    if (intersectBox(children[i]->m, children[i]->p, ray, &t)) {
-      ns.push(children[i].get());
-    }
-  }
+  ns.push(this);
   while (!ns.empty()) {
     // TODO: improve search order
     AccelNode *n = ns.top(); ns.pop();

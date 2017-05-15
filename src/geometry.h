@@ -80,12 +80,13 @@ class AccelNode {
 
 class Geometry {
  public:
-  std::vector<Vector3d> ps; // positions of vertices
-  std::vector<Vector3d> ns; // normals at vertices
+  std::vector<std::shared_ptr<Vector3d>> ps; // positions of vertices
+  std::vector<std::shared_ptr<Vector3d>> ns; // normals at vertices
   std::vector<Face> fs; // faces
   Material material;
   std::unique_ptr<AccelNode> root;
 
+  void dump();
   void prepare();
   double r();
   Vector3d center();
@@ -119,6 +120,7 @@ class Camera {
   Vector3d u_;
   Vector3d v_;
   Vector3d w_;
+  Color bg_color_;
 
  public:
   Film film;
@@ -129,10 +131,12 @@ class Camera {
   Vector3d u() const { return u_; } // y axis of the camera
   Vector3d v() const { return v_; } // x axis of
   Vector3d w() const { return w_; } // z
+  Color bgColor() const { return bg_color_; }
 
   void up(Vector3d up);
   void p(Vector3d p);
   void w(Vector3d w);
+  void bgColor(Color c) { bg_color_ = c; }
 };
 
 class Scene {

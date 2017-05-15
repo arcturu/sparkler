@@ -30,9 +30,9 @@ Pixel<uint8_t> shade(Intersection it, std::vector<Light> ls) {
   Pixel<uint8_t> pix;
   for (const auto& l : ls) {
     double dist = (l.p - it.p).length();
-    pix.r += saturate(l.color.r * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 10, 255);
-    pix.g += saturate(l.color.g * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 10, 255);
-    pix.b += saturate(l.color.b * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 10, 255);
+    pix.r += saturate(l.color.r * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6, 255);
+    pix.g += saturate(l.color.g * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6, 255);
+    pix.b += saturate(l.color.b * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6, 255);
   }
   return pix;
 }
@@ -48,6 +48,10 @@ Image<uint8_t> raytrace(Scene& scene) {
       if (it.hit) {
 //        img.m[y][x].r = it.n.x() * 255; img.m[y][x].g = it.n.y() * 255; img.m[y][x].b = it.n.z() * 255;
         img.m[y][x] = shade(it, scene.lights);
+      } else {
+        img.m[y][x].r = scene.camera.bgColor().r * 255;
+        img.m[y][x].g = scene.camera.bgColor().g * 255;
+        img.m[y][x].b = scene.camera.bgColor().b * 255;
       }
     }
   }
