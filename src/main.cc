@@ -21,13 +21,16 @@ int main(int argc, char **argv) {
   }
   try {
     Logger::info(std::string("Parsing ") + argv[1]);
+    auto t1 = Clock::now();
     Scene scene = ParseScene(argv[1]);
+    auto t2 = Clock::now();
+    Logger::info(std::string("Parse & prepare finished in ") + std::to_string(MS(t2 - t1)) + " ms");
     scene.dump();
 
     Logger::info("Raytrace");
-    auto t1 = Clock::now();
+    t1 = Clock::now();
     Image<uint8_t> img = raytrace(scene);
-    auto t2 = Clock::now();
+    t2 = Clock::now();
     int time = MS(t2 - t1);
     Logger::info(std::string("Raytrace finished in ") + std::to_string(time) + " ms (" + std::to_string((double)img.width() * img.height() / time * 1000 / 1000 / 1000) + " Mrps)");
 
