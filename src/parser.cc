@@ -171,9 +171,10 @@ Scene ParseScene(const char *path) {
                               static_cast<Light::Type>(jl["type"].int_value()),
                               color);
   }
+  Geometry geo;
   for (const auto& jobj : json["geometry"].array_items()) {
     Logger::info(std::string("loading ") + jobj["file"].string_value());
-    Geometry geo = ParseObj(jobj["file"].string_value());
+    Geometry tmp_geo = ParseObj(jobj["file"].string_value());
     if (!jobj["transform"].is_null()) {
       double M[4][4];
       for (int i = 0; i < 4; i++ ){
@@ -181,7 +182,7 @@ Scene ParseScene(const char *path) {
           M[i][j] = jobj["transform"][i][j].number_value();
         }
       }
-      for (const auto& p : geo.ps) {
+      for (const auto& p : tmp_geo.ps) {
         double v[4];
         for (int i = 0; i < 3; i++) {
           v[i] = (*p)[i];
@@ -195,10 +196,13 @@ Scene ParseScene(const char *path) {
         }
       }
     }
-    geo.dump();
-    geo.prepare(); // construct accel structure
-    geo.material = static_cast<Material>(jobj["material"].int_value());
-    scene.objects.push_back(std::move(geo));
+//    tmp_geo.dump();
+//    tmp_geo.prepare(); // construct accel structure
+    tmp_geo.material = static_cast<Material>(jobj["material"].int_value());
+    geo.merge(tmp_geo);
+//    scene.objects.push_back(std::move(tmp_geo));
   }
+  geo.prepare();
+  scene.objects.push_back(std::move(geo));
   return scene;
 }

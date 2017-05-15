@@ -9,6 +9,7 @@ class Aabb {
   Vector3d p, m;
 
   Aabb(Vector3d p_, Vector3d m_) : p(p_), m(m_) {}
+  Aabb() {}
   double volume() {
     return (p.x() - m.x()) * (p.y() - m.y()) * (p.z() - m.z());
   }

@@ -47,6 +47,33 @@ Aabb boundingBox(const std::vector<Face>& fs) {
   return a;
 }
 
+Aabb boundingBox(const Face& f) {
+  const double inf = std::numeric_limits<double>::infinity();
+  Vector3d p(-inf, -inf, -inf), m(inf, inf, inf);
+  for (const auto& v : f.vs) {
+    if (p.x() < v.p->x()) { p.x(v.p->x()); }
+    if (p.y() < v.p->y()) { p.y(v.p->y()); }
+    if (p.z() < v.p->z()) { p.z(v.p->z()); }
+    if (m.x() > v.p->x()) { m.x(v.p->x()); }
+    if (m.y() > v.p->y()) { m.y(v.p->y()); }
+    if (m.z() > v.p->z()) { m.z(v.p->z()); }
+  }
+  return Aabb(p, m);
+}
+
+void mergeBoundingBox(Aabb& a, const Face& f) {
+  const double inf = std::numeric_limits<double>::infinity();
+  Vector3d p(-inf, -inf, -inf), m(inf, inf, inf);
+  for (const auto& v : f.vs) {
+    if (a.p.x() < v.p->x()) { a.p.x(v.p->x()); }
+    if (a.p.y() < v.p->y()) { a.p.y(v.p->y()); }
+    if (a.p.z() < v.p->z()) { a.p.z(v.p->z()); }
+    if (a.m.x() > v.p->x()) { a.m.x(v.p->x()); }
+    if (a.m.y() > v.p->y()) { a.m.y(v.p->y()); }
+    if (a.m.z() > v.p->z()) { a.m.z(v.p->z()); }
+  }
+}
+
 double costSeparationBvh(const std::vector<Face>& fs1, const std::vector<Face>& fs2, double sv) {
   Aabb a1 = boundingBox(fs1);
   Aabb a2 = boundingBox(fs2);
@@ -55,46 +82,69 @@ double costSeparationBvh(const std::vector<Face>& fs1, const std::vector<Face>& 
   return a1v / sv * fs1.size() + a2v / sv * fs2.size();
 }
 
+// TODO: refactoring
 std::unique_ptr<AccelNode> separateGeometryBvh(std::vector<Face> fs) {
   std::unique_ptr<AccelNode> n(new AccelNode);
-  const int SEARCH_DIV_RES = 2;
-  const int MIN_OBJS = 20;
+  const int SEARCH_DIV_RES = 10;
+  const int MIN_OBJS = 1;
   Aabb a = boundingBox(fs);
   n->p = a.p;
   n->m = a.m;
   if (fs.size() > MIN_OBJS) {
-    std::vector<Face> fs1 = fs, fs2;
+    std::vector<int> fi1, fi2;
+    int fi1_head = 0;
+    int fi2_head = 0;
     double min_c = std::numeric_limits<double>::infinity();
+    std::vector<int> tmp_fi1, tmp_fi2;
+    tmp_fi1.resize(fs.size());
+    tmp_fi2.resize(fs.size());
+    int tmp_fi1_head = 0;
+    int tmp_fi2_head = 0;
+    Aabb af1, af2, tmp_af1, tmp_af2;
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < SEARCH_DIV_RES; j++) {
+        tmp_fi1_head = 0;
+        tmp_fi2_head = 0;
         Vector3d tmp_p = n->p;
         tmp_p.p[i] = n->m[i] + (n->p[i] - n->m[i]) / SEARCH_DIV_RES * j;
 
-        std::vector<Face> tmp_fs1, tmp_fs2;
-        for (auto f = fs.begin(); f != fs.end(); ++f) {
+        for (int k = 0; k < fs.size(); k++) {
           bool in1 = false;
-          for (auto v = f->vs.begin(); v != f->vs.end(); ++v) {
-            if (belongs(*v->p, n->m, tmp_p)) {
+          for (const auto& v : fs[k].vs) {
+            if (belongs(*v.p, n->m, tmp_p)) {
               in1 = true;
               break;
             }
           }
           if (in1) {
-            tmp_fs1.push_back(*f);
+            tmp_fi1[tmp_fi1_head++] = k;
+            mergeBoundingBox(tmp_af1, fs[k]);
           } else {
-            tmp_fs2.push_back(*f);
+            tmp_fi2[tmp_fi2_head++] = k;
+            mergeBoundingBox(tmp_af2, fs[k]);
           }
         }
 
-        double c = costSeparationBvh(tmp_fs1, tmp_fs2, a.volume());
+        double c = tmp_af1.volume() / a.volume() * tmp_fi1.size() + tmp_af2.volume() / a.volume() * tmp_fi2.size();
         if (c < min_c) {
           min_c = c;
-          fs1 = tmp_fs1;
-          fs2 = tmp_fs2;
+          fi1 = tmp_fi1;
+          fi2 = tmp_fi2;
+          fi1_head = tmp_fi1_head;
+          fi2_head = tmp_fi2_head;
         }
       }
     }
-    if (fs1.size() != 0 && fs2.size() != 0 && (fs1.size() < fs.size() || fs2.size() < fs.size())) {
+    if (fi1_head != 0 && fi2_head != 0 && (fi1_head < fs.size() || fi2_head < fs.size())) {
+      std::vector<Face> fs1, fs2;
+      fs1.reserve(fi1_head);
+      fs2.reserve(fi2_head);
+      for (int i = 0; i < fi1_head; i++) {
+        fs1.push_back(fs[fi1[i]]);
+      }
+      for (int i = 0; i < fi2_head; i++) {
+        fs2.push_back(fs[fi2[i]]);
+      }
       n->children.push_back(separateGeometryBvh(fs1));
       n->children.push_back(separateGeometryBvh(fs2));
     } else {

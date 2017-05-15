@@ -6,6 +6,7 @@
 #include "exception.h"
 #include "constant.h"
 #include "accel.h"
+#include "stat.h"
 
 void Scene::dump() {
   // dump statistics
@@ -147,6 +148,23 @@ Intersection Geometry::intersect(const Ray& ray) const {
     it.material = material;
   }
   return it;
+}
+
+void Geometry::merge(const Geometry& g2) {
+  ps.reserve(ps.size() + g2.ps.size());
+  ns.reserve(ns.size() + g2.ns.size());
+  fs.reserve(fs.size() + g2.fs.size());
+  for (const auto& p : g2.ps) {
+    ps.push_back(p);
+  }
+  for (const auto& n : g2.ns) {
+    ns.push_back(n);
+  }
+  for (const auto& f : g2.fs) {
+    fs.push_back(f);
+  }
+  material = g2.material; // FIXME
+  root = nullptr;
 }
 
 void Geometry::prepare() {

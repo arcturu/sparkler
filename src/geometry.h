@@ -93,6 +93,7 @@ class Geometry {
   Intersection intersectNaive(const Ray& ray) const;
   Intersection intersect(const Ray& ray) const;
   static Intersection intersectTriangle(const Face& f, const Ray& ray);
+  void merge(const Geometry& g2);
 };
 
 class Film {
