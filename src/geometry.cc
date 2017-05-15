@@ -6,6 +6,7 @@
 #include "exception.h"
 #include "constant.h"
 #include "accel.h"
+#include "stat.h"
 
 void Scene::dump() {
   // dump statistics
@@ -91,6 +92,7 @@ Vector3d Geometry::center() {
 }
 
 Intersection Geometry::intersectTriangle(const Face& f, const Ray& ray) {
+  stat_num_intersectTriangle++;
   Intersection it;
   if (f.vertexCount() != 3) {
     THROW_EXCEPTION("Not implemented yet");

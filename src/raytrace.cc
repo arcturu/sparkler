@@ -4,6 +4,7 @@
 #include "raytrace.h"
 #include "image.h"
 #include "geometry.h"
+#include "stat.h"
 
 Ray generateCameraRay(const Camera& cam, int x, int y) {
   Ray r;
@@ -43,6 +44,7 @@ Image<uint8_t> raytrace(Scene& scene) {
   for (int y = 0; y < img.height(); y++) {
     for (int x = 0; x < img.width(); x++) {
       Ray r = generateCameraRay(scene.camera, x, y);
+      stat_num_ray++;
 
       Intersection it = scene.intersect(r);
       if (it.hit) {

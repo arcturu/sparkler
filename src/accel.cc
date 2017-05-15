@@ -4,6 +4,7 @@
 #include "constant.h"
 #include "exception.h"
 #include "geometry.h"
+#include "stat.h"
 
 #include <iostream>
 
@@ -56,6 +57,7 @@ double costSeparationBvh(const std::vector<Face>& fs1, const std::vector<Face>& 
 }
 
 std::unique_ptr<AccelNode> separateGeometryBvh(std::vector<Face> fs) {
+  stat_num_accel_node++;
   std::unique_ptr<AccelNode> n(new AccelNode);
   const int SEARCH_DIV_RES = 2;
   const int MIN_OBJS = 20;
@@ -98,15 +100,18 @@ std::unique_ptr<AccelNode> separateGeometryBvh(std::vector<Face> fs) {
       n->children.push_back(separateGeometryBvh(fs1));
       n->children.push_back(separateGeometryBvh(fs2));
     } else {
+      stat_num_accel_leaf++;
       n->faces = fs;
     }
   } else {
+    stat_num_accel_leaf++;
     n->faces = fs;
   }
   return n;
 }
 
 bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray, double *t_hit = nullptr) {
+  stat_num_intersectBox++;
   double t_max = std::numeric_limits<double>::infinity();
   double t_min = -std::numeric_limits<double>::infinity();
   double t1, t2, t_far, t_near;
@@ -139,6 +144,7 @@ Intersection AccelNode::traverseLoop(const Ray& ray) {
   int stat_max_num_ns = 0;
   ns.push(this);
   while (!ns.empty()) {
+    stat_num_traverse++;
     // TODO: improve search order
     AccelNode *n = ns.top(); ns.pop();
     if (n->children.size() == 0) { // n is a leef node

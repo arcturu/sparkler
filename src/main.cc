@@ -9,10 +9,29 @@
 #include "exception.h"
 #include "accel.h"
 #include "logger.h"
+#include "stat.h"
 
 #define MS(x) std::chrono::duration_cast<std::chrono::milliseconds>(x).count()
 
 typedef std::chrono::high_resolution_clock Clock;
+
+void initStat() {
+  stat_num_intersectTriangle = 0;
+  stat_num_intersectBox = 0;
+  stat_num_traverse = 0;
+  stat_num_accel_node = 0;
+  stat_num_accel_leaf = 0;
+  stat_num_ray = 0;
+}
+
+void dumpStat() {
+  std::cout << "stat #it-tri   : " << stat_num_intersectTriangle << std::endl;
+  std::cout << "stat #it-box   : " << stat_num_intersectBox << std::endl;
+  std::cout << "stat #traverse : " << stat_num_traverse << std::endl;
+  std::cout << "stat #anode    : " << stat_num_accel_node << std::endl;
+  std::cout << "stat #aleaf    : " << stat_num_accel_leaf << std::endl;
+  std::cout << "stat #ray      : " << stat_num_ray << std::endl;
+}
 
 int main(int argc, char **argv) {
   if (argc != 2) {
@@ -20,6 +39,7 @@ int main(int argc, char **argv) {
     return 1;
   }
   try {
+    initStat();
     Logger::info(std::string("Parsing ") + argv[1]);
     auto t1 = Clock::now();
     Scene scene = ParseScene(argv[1]);
@@ -36,6 +56,8 @@ int main(int argc, char **argv) {
 
     Logger::info("Output");
     img.outputPpm("out.ppm");
+
+    dumpStat();
   } catch (Exception& e) {
     Logger::error(e.what());
   }
