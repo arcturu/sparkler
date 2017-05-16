@@ -1,4 +1,6 @@
 {
+  "bvh-resolution": 4,
+  "bvh-min-objs": 20,
   "camera": {
     "size": 0.032,
     "pixels": [512, 512],

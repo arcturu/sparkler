@@ -9,6 +9,7 @@
 #include "vector3d.h"
 #include "exception.h"
 #include "logger.h"
+#include "global.h"
 #include "../lib/json11/json11.hpp"
 
 std::vector<std::string> split(std::string line, char delim) {
@@ -146,6 +147,11 @@ Scene ParseScene(const char *path, const char *obj_dir) {
   if (err != "") {
     THROW_EXCEPTION(err);
   }
+
+  // set global variables
+  G_SEARCH_DIV_RES = json["bvh-resolution"].int_value();
+  G_MIN_OBJS = json["bvh-min-objs"].int_value();
+
 //  if (json["camera"]) {
     json11::Json jcam = json["camera"];
     if (jcam["size"].is_null())     { THROW_EXCEPTION("camera.size is not defined"); }

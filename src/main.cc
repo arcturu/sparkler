@@ -10,6 +10,7 @@
 #include "accel.h"
 #include "logger.h"
 #include "stat.h"
+#include "global.h"
 
 #define MS(x) std::chrono::duration_cast<std::chrono::milliseconds>(x).count()
 
@@ -31,6 +32,9 @@ void dumpStat() {
   std::cout << "stat #anode    : " << stat_num_accel_node << std::endl;
   std::cout << "stat #aleaf    : " << stat_num_accel_leaf << std::endl;
   std::cout << "stat #ray      : " << stat_num_ray << std::endl;
+  std::cout << std::endl;
+  std::cout << "G_MIN_OBJS       : " << G_MIN_OBJS << std::endl;
+  std::cout << "G_SEARCH_DIV_RES : " << G_SEARCH_DIV_RES << std::endl;
 }
 
 int main(int argc, char **argv) {

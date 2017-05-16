@@ -14,7 +14,6 @@ $(ODIR)/%.o: $(SDIR)/%.cc
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 $(TARGET): $(OBJS)
-	cd lib/json11 && make && cd ../../
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS) $(LIBDIRS)
 
 clean:

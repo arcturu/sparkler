@@ -5,6 +5,7 @@
 #include "exception.h"
 #include "geometry.h"
 #include "stat.h"
+#include "global.h"
 
 #include <iostream>
 
@@ -59,18 +60,16 @@ double costSeparationBvh(const std::vector<Face>& fs1, const std::vector<Face>& 
 std::unique_ptr<AccelNode> separateGeometryBvh(std::vector<Face> fs) {
   stat_num_accel_node++;
   std::unique_ptr<AccelNode> n(new AccelNode);
-  const int SEARCH_DIV_RES = 2;
-  const int MIN_OBJS = 20;
   Aabb a = boundingBox(fs);
   n->p = a.p;
   n->m = a.m;
-  if (fs.size() > MIN_OBJS) {
+  if (fs.size() > G_MIN_OBJS) {
     std::vector<Face> fs1 = fs, fs2;
     double min_c = std::numeric_limits<double>::infinity();
     for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < SEARCH_DIV_RES; j++) {
+      for (int j = 0; j < G_SEARCH_DIV_RES; j++) {
         Vector3d tmp_p = n->p;
-        tmp_p.p[i] = n->m[i] + (n->p[i] - n->m[i]) / SEARCH_DIV_RES * j;
+        tmp_p.p[i] = n->m[i] + (n->p[i] - n->m[i]) / G_SEARCH_DIV_RES * j;
 
         std::vector<Face> tmp_fs1, tmp_fs2;
         for (auto f = fs.begin(); f != fs.end(); ++f) {
