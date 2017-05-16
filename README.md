@@ -1,4 +1,4 @@
-# Sparkler: A Hobby Renderer
+# Sparkler: A Hobby Raytracer
 
 ## Usage
 
