@@ -134,7 +134,7 @@ Vector3d to_v3d(const T v) {
   return v3;
 }
 
-Scene ParseScene(const char *path) {
+Scene ParseScene(const char *path, const char *obj_dir) {
   Scene scene;
   std::ifstream ifs(path);
   std::istreambuf_iterator<char> it(ifs);
@@ -173,7 +173,7 @@ Scene ParseScene(const char *path) {
   }
   for (const auto& jobj : json["geometry"].array_items()) {
     Logger::info(std::string("loading ") + jobj["file"].string_value());
-    Geometry geo = ParseObj(jobj["file"].string_value());
+    Geometry geo = ParseObj(std::string(obj_dir) + "/" + jobj["file"].string_value());
     if (!jobj["transform"].is_null()) {
       double M[4][4];
       for (int i = 0; i < 4; i++ ){

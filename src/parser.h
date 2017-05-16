@@ -5,7 +5,7 @@
 #include "geometry.h"
 
 Geometry ParseObj(const std::string path); // parsing .obj files
-Scene ParseScene(const char *path); // parse scene json
+Scene ParseScene(const char *path, const char *obj_dir); // parse scene json
 Camera ParseObjxCamera(const char *path, bool *st);
 
 #endif

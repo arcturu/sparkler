@@ -34,15 +34,15 @@ void dumpStat() {
 }
 
 int main(int argc, char **argv) {
-  if (argc != 2) {
-    Logger::info(std::string("usage: ") + argv[0] + " [ path-to-obj-file ]");
+  if (argc != 3) {
+    Logger::info(std::string("usage: ") + argv[0] + " [ path-to-scene-file ] [ obj-dir ]");
     return 1;
   }
   try {
     initStat();
     Logger::info(std::string("Parsing ") + argv[1]);
     auto t1 = Clock::now();
-    Scene scene = ParseScene(argv[1]);
+    Scene scene = ParseScene(argv[1], argv[2]);
     auto t2 = Clock::now();
     Logger::info(std::string("Parse & prepare finished in ") + std::to_string(MS(t2 - t1)) + " ms");
     scene.dump();
