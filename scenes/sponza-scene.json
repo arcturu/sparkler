@@ -1,0 +1,22 @@
+{
+  "camera": {
+    "size": 0.032,
+    "pixels": [512, 512],
+    "fov": 55,
+    "position": [8, 1.5, 1],
+    "look-at": [0, 2.5, -1],
+    "up": [0, 1, 0],
+    "bg-color": [0, 0, 0.2]
+  },
+  "light": [{
+    "type": 0,
+    "position": [0, 10.0, 0],
+    "color": [1, 1, 1],
+    "energy": 2513.2741228718
+  }],
+  "geometry": [{
+    "file": "sponza.obj",
+    "material": 0
+  }]
+}
+
