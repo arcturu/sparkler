@@ -10,11 +10,13 @@ OBJS = $(addprefix $(ODIR)/, $(patsubst %.cc, %.o, $(SRCS))) lib/json11/json11.o
 all: $(TARGET)
 
 $(ODIR)/%.o: $(SDIR)/%.cc
-	test -d $(ODIR) || mkdir $(ODIR)
+	@ test -d $(ODIR) || mkdir $(ODIR)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 $(TARGET): $(OBJS)
+	cd lib/json11 && make && cd ../../
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS) $(LIBDIRS)
 
 clean:
-	rm -rf build sparkler
+	cd lib/json11 && make clean && cd ../../
+	rm -rf build sparkler sparkler.dtps
