@@ -104,6 +104,29 @@ Pixel<uint8_t> shade(Scene& scene, const Ray& ray, const Intersection& it, unsig
       refracted_ray.dir = relative_eta * (ray.dir.normalize() - wn * n) - sqrt(r) * n;
       return shade(scene, refracted_ray, getShadowIntersection(scene, refracted_ray, 1e100), ttl-1);
     }
+  } else if (it.material == Glossy) {
+    for (const auto& l : scene.lights) {
+      Ray shadow_ray;
+      shadow_ray.src = it.p;
+      shadow_ray.dir = l.p - it.p;
+      Intersection shadowIt = getShadowIntersection(scene, shadow_ray, shadow_ray.dir.length());
+      if (shadowIt.hit) {
+        pix.r = 0; pix.g = 0; pix.b = 0;
+      } else {
+        double dist = (l.p - it.p).length();
+        pix.r += saturate(l.color.r * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6, 255);
+        pix.g += saturate(l.color.g * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6, 255);
+        pix.b += saturate(l.color.b * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6, 255);
+      }
+
+      Vector3d h = shadow_ray.dir.normalize() - ray.dir.normalize();
+      double g = 5;
+      double glossy = fmax(0, pow(it.n.dot(h.normalize()), g)) * 255 * 0.1;
+      printf("%f\n", glossy);
+      pix.r = saturate((double)pix.r + glossy, 255);
+      pix.g = saturate((double)pix.g + glossy, 255);
+      pix.b = saturate((double)pix.b + glossy, 255);
+    }
   } else {
     Logger::error(std::string("Unknown material: ") + std::to_string(it.material));
   }

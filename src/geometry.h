@@ -14,7 +14,8 @@ class Ray {
 typedef enum {
   Diffuse = 0,
   Mirror = 1,
-  Glass = 2
+  Glass = 2,
+  Glossy = 3
 } Material;
 
 class Intersection {

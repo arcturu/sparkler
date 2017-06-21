@@ -18,7 +18,7 @@
   }],
   "geometry": [{
     "file": "teapot.obj",
-    "material": 2,
+    "material": 3,
     "eta": 1.2
   }, {
     "file": "floor1.obj",
