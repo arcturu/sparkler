@@ -147,6 +147,7 @@ Intersection Geometry::intersect(const Ray& ray) const {
   Intersection it = root->traverseLoop(ray);
   if (it.hit) {
     it.material = material;
+    it.eta = eta;
   }
   return it;
 }

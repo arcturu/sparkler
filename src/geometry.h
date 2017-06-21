@@ -12,7 +12,9 @@ class Ray {
 };
 
 typedef enum {
-  Lambertian = 0
+  Diffuse = 0,
+  Mirror = 1,
+  Glass = 2
 } Material;
 
 class Intersection {
@@ -22,6 +24,7 @@ class Intersection {
   Vector3d p;
   Vector3d n;
   Material material;
+  double eta;
 
   Intersection() : hit(false) {};
   Intersection(bool hit_) : hit(hit_) {};
@@ -84,6 +87,7 @@ class Geometry {
   std::vector<std::shared_ptr<Vector3d>> ns; // normals at vertices
   std::vector<Face> fs; // faces
   Material material;
+  double eta;
   std::unique_ptr<AccelNode> root;
 
   void dump();

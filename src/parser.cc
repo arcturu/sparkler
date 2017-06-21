@@ -204,6 +204,13 @@ Scene ParseScene(const char *path, const char *obj_dir) {
     geo.dump();
     geo.prepare(); // construct accel structure
     geo.material = static_cast<Material>(jobj["material"].int_value());
+    if (!jobj["eta"].is_null()) {
+  printf("hoge\n");
+      geo.eta = jobj["eta"].number_value();
+  printf("pohe\n");
+    } else {
+      geo.eta = 1.0;
+    }
     scene.objects.push_back(std::move(geo));
   }
   return scene;

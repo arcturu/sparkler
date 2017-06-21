@@ -13,7 +13,7 @@ class Vector3d {
   Vector3d cross(Vector3d v) const;
   double dot(Vector3d v) const;
   double length() const;
-  Vector3d normalize();
+  Vector3d normalize() const;
   std::string toString() const;
 
   double x() const { return p[0]; }
