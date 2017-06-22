@@ -7,6 +7,7 @@
 #include "constant.h"
 #include "accel.h"
 #include "stat.h"
+#include "logger.h"
 
 void Scene::dump() {
   // dump statistics
@@ -120,6 +121,12 @@ Intersection Geometry::intersectTriangle(const Face& f, const Ray& ray) {
     it.p = q;
     if (f.vs[0].n && f.vs[1].n && f.vs[2].n) {
       it.n = (va / vsum * *f.vs[0].n + vb / vsum * *f.vs[1].n + vc / vsum * *f.vs[2].n).normalize();
+      if (it.n.x() != it.n.x()) {
+        it.n = plane_n.normalize();
+//        printf("hoe\n");
+//        printf("%f %f %f\n", va, vb, vc);
+//        Logger::info(it.n.toString() + f.vs[0].n->toString() + f.vs[1].n->toString() + f.vs[2].n->toString());
+      }
     } else {
       it.n = plane_n.normalize();
     }

@@ -3,7 +3,7 @@
 #include <fstream>
 
 template <class T>
-int Image<T>::width() {
+int Image<T>::width() const {
   if (m.size() > 0) {
     return m[0].size();
   } else {

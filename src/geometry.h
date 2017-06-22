@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include "vector3d.h"
+#include "image.h"
 
 class Ray {
  public:
@@ -126,6 +127,7 @@ class Camera {
   Vector3d v_;
   Vector3d w_;
   Color bg_color_;
+  Image<double> bg_image_;
 
  public:
   Film film;
@@ -137,11 +139,13 @@ class Camera {
   Vector3d v() const { return v_; } // x axis of
   Vector3d w() const { return w_; } // z
   Color bgColor() const { return bg_color_; }
+  const Image<double>& bgImage() const { return bg_image_; }
 
   void up(Vector3d up);
   void p(Vector3d p);
   void w(Vector3d w);
   void bgColor(Color c) { bg_color_ = c; }
+  void bgImage(const Image<double>& img) { bg_image_ = img; }
 };
 
 class Scene {

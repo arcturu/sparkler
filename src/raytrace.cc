@@ -48,6 +48,14 @@ Ray generateCameraRayLens(const Camera& cam, int x, int y) {
   return r;
 }
 
+Vector3d getRandomVector() {
+  std::random_device rnd;
+  std::mt19937 mt(rnd());
+  std::uniform_real_distribution<double> rand(0, 1);
+  Vector3d v(rand(mt), rand(mt), rand(mt));
+  return v.normalize();
+}
+
 uint8_t saturate(double x, uint8_t limit) {
   if (x > (double)limit) {
     return limit;
@@ -100,6 +108,19 @@ Intersection getShadowIntersection(Scene& scene, Ray shadow_ray, double maxdist)
   return it;
 }
 
+Pixel<double> getImageLighting(Scene& scene, const Ray& ray) {
+  Vector3d center(0, 0, 1);
+  double t = ray.dir.normalize().dot(center);
+  Vector3d dir = ray.dir.normalize() - center;
+  int x = (0.5 + t * dir.x() / 2) * scene.camera.bgImage().width();
+  int y = (0.5 + t * dir.y() / 2) * scene.camera.bgImage().height();
+  if (x < 0) {
+    printf("%d %d\n", x, y);
+    Logger::info(ray.dir.toString() + dir.toString());
+  }
+  return 255 * scene.camera.bgImage().m[y][x];
+}
+
 Pixel<double> getIrradiance(Scene& scene, const Intersection& it) {
   Pixel<double> pix;
   for (const auto& l : scene.lights) {
@@ -115,6 +136,23 @@ Pixel<double> getIrradiance(Scene& scene, const Intersection& it) {
       pix.g += l.color.g * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6;
       pix.b += l.color.b * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6;
     }
+  }
+  // image based lighting
+  if (scene.camera.bgImage().height() > 0) {
+    const int N = 10;
+    int success_count = 0;
+    Pixel<double> pix_ibl;
+    for (int i = 0; i < N; i++) {
+      Ray ray;
+      ray.src = it.p;
+      ray.dir = getRandomVector();
+      Intersection img_it = getShadowIntersection(scene, ray, 1e100);
+      if (!img_it.hit) {
+        pix_ibl = pix_ibl + 0.3 * getImageLighting(scene, ray);
+        success_count += 1;
+      }
+    }
+    pix = pix + pix_ibl / success_count;
   }
   return pix;
 }
@@ -139,13 +177,18 @@ Pixel<double> getGlossy(const Scene& scene, const Intersection& it, const Ray& r
 Pixel<double> shade(Scene& scene, const Ray& ray, const Intersection& it, unsigned int ttl) {
   Pixel<double> pix;
   if (ttl < 1) {
-    pix.r = 255; pix.g = 0; pix.b = 0;
+//    pix.r = 255; pix.g = 0; pix.b = 0; // for debug
+    pix.r = 0; pix.g = 0; pix.b = 0;
     return pix;
   }
   if (!it.hit) {
-    pix.r = scene.camera.bgColor().r * 255;
-    pix.g = scene.camera.bgColor().g * 255;
-    pix.b = scene.camera.bgColor().b * 255;
+    if (scene.camera.bgImage().height() > 0) {
+      return getImageLighting(scene, ray);
+    } else {
+      pix.r = scene.camera.bgColor().r * 255;
+      pix.g = scene.camera.bgColor().g * 255;
+      pix.b = scene.camera.bgColor().b * 255;
+    }
     return pix;
   }
   if (it.material == Diffuse) {
@@ -177,12 +220,20 @@ Pixel<double> shade(Scene& scene, const Ray& ray, const Intersection& it, unsign
       Ray reflected_ray;
       reflected_ray.src = it.p;
       reflected_ray.dir = ray.dir.normalize() - 2.0 * n.dot(ray.dir.normalize()) * n;
+      if (reflected_ray.dir.x() != reflected_ray.dir.x()) {
+        printf("pohe\n");
+        Logger::info(ray.dir.toString() + n.toString());
+      }
       return shade(scene, reflected_ray, getShadowIntersection(scene, reflected_ray, 1e100), ttl-1);
     } else {
       // refraction
       Ray refracted_ray;
       refracted_ray.src = it.p;
       refracted_ray.dir = relative_eta * (ray.dir.normalize() - wn * n) - sqrt(r) * n;
+      if (refracted_ray.dir.x() != refracted_ray.dir.x()) {
+        printf("hoge\n");
+        Logger::info(ray.dir.toString() + n.toString());
+      }
       return shade(scene, refracted_ray, getShadowIntersection(scene, refracted_ray, 1e100), ttl-1);
     }
   } else if (it.material == Glossy) {
@@ -196,15 +247,21 @@ Pixel<double> shade(Scene& scene, const Ray& ray, const Intersection& it, unsign
 
 Pixel<double> toneMap(const Pixel<double>& pix) {
   Pixel<double> pix2;
+  double c = 0.01;
+  pix2.r = (1.0 - exp(-c * pix.r)) * 255;
+  pix2.g = (1.0 - exp(-c * pix.g)) * 255;
+  pix2.b = (1.0 - exp(-c * pix.b)) * 255;
+/*
   double gamma = 0.9; // TODO json
   pix2.r = pow(pix.r, gamma);
   pix2.g = pow(pix.g, gamma);
   pix2.b = pow(pix.b, gamma);
+*/
   return pix2;
 }
 
 Image<uint8_t> raytrace(Scene& scene) {
-  const int N = 5;
+  const int N = 1;
   Image<uint8_t> img(scene.camera.film.xpixels(), scene.camera.film.ypixels());
 
   for (int y = 0; y < img.height(); y++) {
@@ -212,8 +269,8 @@ Image<uint8_t> raytrace(Scene& scene) {
     for (int x = 0; x < img.width(); x++) {
       Pixel<double> pix;
       for (int i = 0; i < N; i++) {
-//        Ray ray = generateCameraRay(scene.camera, x, y);
-        Ray ray = generateCameraRayLens(scene.camera, x, y);
+        Ray ray = generateCameraRay(scene.camera, x, y);
+//        Ray ray = generateCameraRayLens(scene.camera, x, y);
         stat_num_ray++;
 
         Intersection it = scene.intersect(ray);
@@ -222,6 +279,7 @@ Image<uint8_t> raytrace(Scene& scene) {
         pix.g += tmp_pix.g / N;
         pix.b += tmp_pix.b / N;
       }
+//      printf ("%d %d %f %f %f\n", x, y, pix.r, pix.g, pix.b);
       img.m[y][x] = saturate(toneMap(pix), 255);
     }
   }

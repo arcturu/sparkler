@@ -165,6 +165,7 @@ Scene ParseScene(const char *path, const char *obj_dir) {
     scene.camera.p(to_v3d(jcam["position"]));
     scene.camera.w((to_v3d(jcam["look-at"]) - scene.camera.p()).normalize());
     scene.camera.bgColor(Color(to_v3d(jcam["bg-color"])));
+    scene.camera.bgImage(ParsePfm(jcam["bg-image"].string_value()));
     scene.camera.film.fromFov(jcam["pixels"][0].int_value(),
                               jcam["pixels"][1].int_value(),
                               jcam["size"].number_value(),
@@ -205,13 +206,65 @@ Scene ParseScene(const char *path, const char *obj_dir) {
     geo.prepare(); // construct accel structure
     geo.material = static_cast<Material>(jobj["material"].int_value());
     if (!jobj["eta"].is_null()) {
-  printf("hoge\n");
       geo.eta = jobj["eta"].number_value();
-  printf("pohe\n");
     } else {
       geo.eta = 1.0;
     }
     scene.objects.push_back(std::move(geo));
   }
   return scene;
+}
+
+// TODO: error handling
+// only supports little endian
+Image<double> ParsePfm(const std::string path) {
+  // read meta data
+  std::ifstream file(path, std::ios::in | std::ios::binary);
+  std::string line;
+  std::getline(file, line); // "PF"
+  std::getline(file, line);
+  std::stringstream sline(line);
+  int w, h;
+  sline >> w >> h;
+  printf("%d, %d\n", w, h);
+  Image<double> img(w, h);
+  std::getline(file, line); // "-1.000000"
+
+  // binary part
+  int i = 0, x = 0, y = 0;
+  Pixel<double> pix;
+  while (!file.eof()) {
+    float f;
+    file.read((char *)&f, 4);
+    switch (i) {
+      case 0:
+        pix.r = f;
+        break;
+      case 1:
+        pix.g = f;
+        break;
+      case 2:
+        pix.b = f;
+        img.m[y][x] = pix;
+        x++;
+//        printf("%d %d %f %f %f\n", x, y, pix.r, pix.g, pix.b);
+        if (x >= w) {
+          x = 0;
+          y++;
+          if (y >= h) {
+            goto END_READING;
+          }
+        }
+        break;
+      default:
+        Logger::error("Something wrong!");
+        break;
+    }
+    i = (i == 2) ? 0 : i + 1;
+  }
+END_READING:
+  printf("%d %d\n", x, y);
+  file.close();
+
+  return img;
 }

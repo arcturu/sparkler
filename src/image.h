@@ -20,6 +20,18 @@ inline Pixel<T> operator+(const Pixel<T> l, const Pixel<T> r) {
   return pix;
 }
 
+template<class T>
+inline Pixel<T> operator*(double c, const Pixel<T> r) {
+  Pixel<T> pix(c * r.r, c * r.g, c * r.b);
+  return pix;
+}
+
+template<class T>
+inline Pixel<T> operator/(const Pixel<T> l, double c) {
+  Pixel<T> pix(l.r / c, l.g / c, l.b / c);
+  return pix;
+}
+
 template <class T>
 class Image {
  public:
@@ -31,8 +43,9 @@ class Image {
       row->resize(w);
     }
   }
-  int width();
-  int height() { return m.size(); }
+  Image() {}
+  int width() const;
+  int height() const { return m.size(); }
   void outputPpm(const char *file);
 };
 
