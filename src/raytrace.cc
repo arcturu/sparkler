@@ -19,8 +19,8 @@ Ray generateCameraRay(const Camera& cam, int x, int y) {
 }
 
 Ray generateCameraRayLens(const Camera& cam, int x, int y) {
-  double lens_d = 15; // TODO from json
-  double lens_r = 1.5; // TODO from json
+  double lens_d = 5; // TODO from json
+  double lens_r = 0.1; // TODO from json
   Vector3d src = (cam.film.resolution() * (y + 0.5) - cam.film.height() / 2.0) * cam.u()
     + (cam.film.resolution() * (x + 0.5) - cam.film.width() / 2.0) * cam.v()
     - cam.film.distance() * cam.w()
@@ -58,6 +58,34 @@ uint8_t saturate(double x, uint8_t limit) {
   }
 }
 
+Pixel<uint8_t> saturate(Pixel<double> pix, uint8_t limit) {
+  Pixel<uint8_t> pix2;
+  if (pix.r > (double)limit) {
+    pix2.r = limit;
+  } else if (pix.r < 0) {
+    pix2.r = 0;
+  } else {
+    pix2.r = (uint8_t)pix.r;
+  }
+
+  if (pix.g > (double)limit) {
+    pix2.g = limit;
+  } else if (pix.g < 0) {
+    pix2.g = 0;
+  } else {
+    pix2.g = (uint8_t)pix.g;
+  }
+
+  if (pix.b > (double)limit) {
+    pix2.b = limit;
+  } else if (pix.b < 0) {
+    pix2.b = 0;
+  } else {
+    pix2.b = (uint8_t)pix.b;
+  }
+  return pix2;
+}
+
 Intersection getShadowIntersection(Scene& scene, Ray shadow_ray, double maxdist) {
   const double SHADOW_EPS = 1e-13;
   Vector3d p = shadow_ray.src;
@@ -72,9 +100,44 @@ Intersection getShadowIntersection(Scene& scene, Ray shadow_ray, double maxdist)
   return it;
 }
 
+Pixel<double> getIrradiance(Scene& scene, const Intersection& it) {
+  Pixel<double> pix;
+  for (const auto& l : scene.lights) {
+    Ray shadow_ray;
+    shadow_ray.src = it.p;
+    shadow_ray.dir = l.p - it.p;
+    Intersection shadowIt = getShadowIntersection(scene, shadow_ray, shadow_ray.dir.length());
+    if (shadowIt.hit) {
+      pix.r = 0; pix.g = 0; pix.b = 0;
+    } else {
+      double dist = (l.p - it.p).length();
+      pix.r += l.color.r * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6;
+      pix.g += l.color.g * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6;
+      pix.b += l.color.b * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6;
+    }
+  }
+  return pix;
+}
+
+Pixel<double> getGlossy(const Scene& scene, const Intersection& it, const Ray& ray) {
+  Pixel<double> pix;
+  for (const auto& l : scene.lights) {
+    Ray shadow_ray;
+    shadow_ray.src = it.p;
+    shadow_ray.dir = l.p - it.p;
+    Vector3d h = shadow_ray.dir.normalize() - ray.dir.normalize();
+    double g = 3;
+    double glossy = fmax(0, pow(it.n.dot(h.normalize()), g)) * 255 * 1;
+    pix.r += glossy;
+    pix.g += glossy;
+    pix.b += glossy;
+  }
+  return pix;
+}
+
 // TODO: support other types of lights
-Pixel<uint8_t> shade(Scene& scene, const Ray& ray, const Intersection& it, unsigned int ttl) {
-  Pixel<uint8_t> pix;
+Pixel<double> shade(Scene& scene, const Ray& ray, const Intersection& it, unsigned int ttl) {
+  Pixel<double> pix;
   if (ttl < 1) {
     pix.r = 255; pix.g = 0; pix.b = 0;
     return pix;
@@ -86,20 +149,7 @@ Pixel<uint8_t> shade(Scene& scene, const Ray& ray, const Intersection& it, unsig
     return pix;
   }
   if (it.material == Diffuse) {
-    for (const auto& l : scene.lights) {
-      Ray shadow_ray;
-      shadow_ray.src = it.p;
-      shadow_ray.dir = l.p - it.p;
-      Intersection shadowIt = getShadowIntersection(scene, shadow_ray, shadow_ray.dir.length());
-      if (shadowIt.hit) {
-        pix.r = 0; pix.g = 0; pix.b = 0;
-      } else {
-        double dist = (l.p - it.p).length();
-        pix.r += saturate(l.color.r * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6, 255);
-        pix.g += saturate(l.color.g * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6, 255);
-        pix.b += saturate(l.color.b * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6, 255);
-      }
-    }
+    pix = getIrradiance(scene, it);
   } else if (it.material == Mirror) {
     Ray reflected_ray;
     reflected_ray.src = it.p;
@@ -136,28 +186,7 @@ Pixel<uint8_t> shade(Scene& scene, const Ray& ray, const Intersection& it, unsig
       return shade(scene, refracted_ray, getShadowIntersection(scene, refracted_ray, 1e100), ttl-1);
     }
   } else if (it.material == Glossy) {
-    for (const auto& l : scene.lights) {
-      Ray shadow_ray;
-      shadow_ray.src = it.p;
-      shadow_ray.dir = l.p - it.p;
-      Intersection shadowIt = getShadowIntersection(scene, shadow_ray, shadow_ray.dir.length());
-      if (shadowIt.hit) {
-        pix.r = 0; pix.g = 0; pix.b = 0;
-      } else {
-        double dist = (l.p - it.p).length();
-        pix.r += saturate(l.color.r * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6, 255);
-        pix.g += saturate(l.color.g * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6, 255);
-        pix.b += saturate(l.color.b * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6, 255);
-      }
-
-      Vector3d h = shadow_ray.dir.normalize() - ray.dir.normalize();
-      double g = 5;
-      double glossy = fmax(0, pow(it.n.dot(h.normalize()), g)) * 255 * 0.1;
-      printf("%f\n", glossy);
-      pix.r = saturate((double)pix.r + glossy, 255);
-      pix.g = saturate((double)pix.g + glossy, 255);
-      pix.b = saturate((double)pix.b + glossy, 255);
-    }
+    pix = getIrradiance(scene, it) + getGlossy(scene, it, ray);
   } else {
     Logger::error(std::string("Unknown material: ") + std::to_string(it.material));
   }
@@ -165,12 +194,12 @@ Pixel<uint8_t> shade(Scene& scene, const Ray& ray, const Intersection& it, unsig
   return pix;
 }
 
-Pixel<uint8_t> toneMap(const Pixel<uint8_t>& pix) {
-  Pixel<uint8_t> pix2;
+Pixel<double> toneMap(const Pixel<double>& pix) {
+  Pixel<double> pix2;
   double gamma = 0.9; // TODO json
-  pix2.r = saturate(pow(pix.r, gamma), 255);
-  pix2.g = saturate(pow(pix.g, gamma), 255);
-  pix2.b = saturate(pow(pix.b, gamma), 255);
+  pix2.r = pow(pix.r, gamma);
+  pix2.g = pow(pix.g, gamma);
+  pix2.b = pow(pix.b, gamma);
   return pix2;
 }
 
@@ -181,18 +210,19 @@ Image<uint8_t> raytrace(Scene& scene) {
   for (int y = 0; y < img.height(); y++) {
     printf("%d\n", y);
     for (int x = 0; x < img.width(); x++) {
+      Pixel<double> pix;
       for (int i = 0; i < N; i++) {
-        Ray ray = generateCameraRay(scene.camera, x, y);
-//        Ray ray = generateCameraRayLens(scene.camera, x, y);
+//        Ray ray = generateCameraRay(scene.camera, x, y);
+        Ray ray = generateCameraRayLens(scene.camera, x, y);
         stat_num_ray++;
 
         Intersection it = scene.intersect(ray);
-        Pixel<uint8_t> pix = shade(scene, ray, it, 100);
-        img.m[y][x].r += (double)pix.r / N;
-        img.m[y][x].g += (double)pix.g / N;
-        img.m[y][x].b += (double)pix.b / N;
+        Pixel<double> tmp_pix = shade(scene, ray, it, 100);
+        pix.r += tmp_pix.r / N;
+        pix.g += tmp_pix.g / N;
+        pix.b += tmp_pix.b / N;
       }
-      img.m[y][x] = toneMap(img.m[y][x]);
+      img.m[y][x] = saturate(toneMap(pix), 255);
     }
   }
 

@@ -11,7 +11,14 @@ class Pixel {
   T b;
 
   Pixel() : r(0), g(0), b(0) {}
+  Pixel(T r, T g, T b) : r(r), g(g), b(b) {}
 };
+
+template<class T>
+inline Pixel<T> operator+(const Pixel<T> l, const Pixel<T> r) {
+  Pixel<T> pix(l.r + r.r, l.g + r.g, l.b + r.b);
+  return pix;
+}
 
 template <class T>
 class Image {
