@@ -8,7 +8,9 @@
     "position": [0, 3, 6],
     "look-at": [0, 0, 0],
     "up": [0, 1, 0],
-    "bg-color": [0, 0, 0.2]
+    "bg-color": [0, 0, 0.2],
+    "lens-d": 1.5,
+    "lens-r": 1.5
   },
   "light": [{
     "type": 0,

@@ -1,6 +1,7 @@
 #define _USE_MATH_DEFINES
 #include <cstdio>
 #include <cmath>
+#include <random>
 #include "raytrace.h"
 #include "image.h"
 #include "geometry.h"
@@ -14,6 +15,36 @@ Ray generateCameraRay(const Camera& cam, int x, int y) {
     + cam.film.distance() * cam.w()
     + cam.p();
   r.dir = (r.src - cam.p()).normalize();
+  return r;
+}
+
+Ray generateCameraRayLens(const Camera& cam, int x, int y) {
+  double lens_d = 15; // TODO from json
+  double lens_r = 1.5; // TODO from json
+  Vector3d src = (cam.film.resolution() * (y + 0.5) - cam.film.height() / 2.0) * cam.u()
+    + (cam.film.resolution() * (x + 0.5) - cam.film.width() / 2.0) * cam.v()
+    - cam.film.distance() * cam.w()
+    + cam.p();
+  Vector3d lens_center = cam.p();
+  double t = lens_d / cam.film.distance();
+  Vector3d target = src + t * (lens_center - src);
+//  Logger::info(target.toString());
+
+  std::random_device rnd;
+  std::mt19937 mt(rnd());
+  std::uniform_real_distribution<double> rand(0, 1);
+
+  double lens_x, lens_y;
+  do {
+    lens_x = (2.0 * rand(mt) - 1) * lens_r;
+    lens_y = (2.0 * rand(mt) - 1) * lens_r;
+  } while ((lens_x * lens_x + lens_y * lens_y) < lens_r * lens_r);
+
+  Ray r;
+  r.src = cam.p() + lens_y * cam.u() + lens_x * cam.v() + cam.w();
+  r.dir = (target - r.src).normalize();
+//  Logger::info(r.src.toString() + r.dir.toString());
+
   return r;
 }
 
@@ -134,16 +165,34 @@ Pixel<uint8_t> shade(Scene& scene, const Ray& ray, const Intersection& it, unsig
   return pix;
 }
 
+Pixel<uint8_t> toneMap(const Pixel<uint8_t>& pix) {
+  Pixel<uint8_t> pix2;
+  double gamma = 0.9; // TODO json
+  pix2.r = saturate(pow(pix.r, gamma), 255);
+  pix2.g = saturate(pow(pix.g, gamma), 255);
+  pix2.b = saturate(pow(pix.b, gamma), 255);
+  return pix2;
+}
+
 Image<uint8_t> raytrace(Scene& scene) {
+  const int N = 5;
   Image<uint8_t> img(scene.camera.film.xpixels(), scene.camera.film.ypixels());
 
   for (int y = 0; y < img.height(); y++) {
+    printf("%d\n", y);
     for (int x = 0; x < img.width(); x++) {
-      Ray ray = generateCameraRay(scene.camera, x, y);
-      stat_num_ray++;
+      for (int i = 0; i < N; i++) {
+        Ray ray = generateCameraRay(scene.camera, x, y);
+//        Ray ray = generateCameraRayLens(scene.camera, x, y);
+        stat_num_ray++;
 
-      Intersection it = scene.intersect(ray);
-      img.m[y][x] = shade(scene, ray, it, 100);
+        Intersection it = scene.intersect(ray);
+        Pixel<uint8_t> pix = shade(scene, ray, it, 100);
+        img.m[y][x].r += (double)pix.r / N;
+        img.m[y][x].g += (double)pix.g / N;
+        img.m[y][x].b += (double)pix.b / N;
+      }
+      img.m[y][x] = toneMap(img.m[y][x]);
     }
   }
 
