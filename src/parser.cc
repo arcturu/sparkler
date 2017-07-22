@@ -165,7 +165,9 @@ Scene ParseScene(const char *path, const char *obj_dir) {
     scene.camera.p(to_v3d(jcam["position"]));
     scene.camera.w((to_v3d(jcam["look-at"]) - scene.camera.p()).normalize());
     scene.camera.bgColor(Color(to_v3d(jcam["bg-color"])));
-    scene.camera.bgImage(ParsePfm(jcam["bg-image"].string_value()));
+    if (!jcam["bg-image"].is_null()) {
+      scene.camera.bgImage(ParsePfm(jcam["bg-image"].string_value()));
+    }
     scene.camera.film.fromFov(jcam["pixels"][0].int_value(),
                               jcam["pixels"][1].int_value(),
                               jcam["size"].number_value(),
