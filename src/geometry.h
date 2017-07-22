@@ -49,7 +49,21 @@ class Face {
 
 class Object {
  public:
+  Material material;
+  double eta;
+
   virtual Intersection intersect(const Ray& ray) = 0;
+};
+
+class Sphere : public Object {
+  Vector3d c;
+  double r;
+ public:
+  Sphere(Vector3d c, double r, Material m, double e) : c(c), r(r) {
+    material = m;
+    eta = e;
+  }
+  Intersection intersect(const Ray& ray);
 };
 
 class Cylinder : public Object {
@@ -58,11 +72,11 @@ class Cylinder : public Object {
   Vector3d dir;
   double len;
   double r;
-  Material material;
-  double eta;
  public:
-  Cylinder(Vector3d s, Vector3d d, double l, double r, Material m, double e)
-    : src(s), dir(d), len(l), r(r), material(m), eta(e) {}
+  Cylinder(Vector3d s, Vector3d d, double l, double r, Material m, double e) : src(s), dir(d), len(l), r(r) {
+    material = m;
+    eta = e;
+  }
   Intersection intersect(const Ray& ray);
 };
 

@@ -208,6 +208,33 @@ void Film::fromRes(double w, double h, double z, double res) {
   fov_ = 2 * atan(w_ / 2 / z_);
 }
 
+Intersection Sphere::intersect(const Ray& ray) {
+  Vector3d v = ray.src - c;
+  double A = ray.dir.dot(ray.dir);
+  double B = 2 * ray.dir.dot(v);
+  double C = v.dot(v) - r * r;
+
+  Intersection it;
+  double det = B * B - 4 * A * C;
+  if (det < 0 || A == 0) { // A == 0 => B == 0
+    return it;
+  }
+  int num_candidates = 2;
+  double t[] = {(-B + sqrt(det)) / (2 * A), (-B - sqrt(det)) / (2 * A)};
+  it.t = std::numeric_limits<double>::infinity();
+  for (int i = 0; i < num_candidates; i++) {
+    if (t[i] < it.t) {
+      it.hit = true;
+      it.t = t[i];
+      it.p = ray.src + t[i] * ray.dir;
+      it.n = (it.p - c).normalize();
+      it.material = material;
+      it.eta = eta;
+    }
+  }
+  return it;
+}
+
 // http://mrl.nyu.edu/~dzorin/rend05/lecture2.pdf
 Intersection Cylinder::intersect(const Ray& ray) {
   Vector3d v = ray.dir - ray.dir.dot(dir) * dir;
@@ -235,9 +262,6 @@ Intersection Cylinder::intersect(const Ray& ray) {
       it.material = material;
       it.eta = eta;
     }
-  }
-  if (it.hit) {
-//    printf("%f %f %f\n", it.p.x(), it.p.y(), it.p.z());
   }
   return it;
 }
