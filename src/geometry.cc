@@ -223,7 +223,7 @@ Intersection Sphere::intersect(const Ray& ray) {
   double t[] = {(-B + sqrt(det)) / (2 * A), (-B - sqrt(det)) / (2 * A)};
   it.t = std::numeric_limits<double>::infinity();
   for (int i = 0; i < num_candidates; i++) {
-    if (t[i] < it.t) {
+    if (t[i] >= 0 && t[i] < it.t) {
       it.hit = true;
       it.t = t[i];
       it.p = ray.src + t[i] * ray.dir;
@@ -254,7 +254,7 @@ Intersection Cylinder::intersect(const Ray& ray) {
   for (int i = 0; i < num_candidates; i++) {
     if (dir.dot(ray.src + t[i] * ray.dir - src) > 0 &&
         dir.dot(ray.src + t[i] * ray.dir - (src + len * dir)) < 0 &&
-        t[i] < it.t) {
+        t[i] >= 0 && t[i] < it.t) {
       it.hit = true;
       it.t = t[i];
       it.p = ray.src + t[i] * ray.dir;
