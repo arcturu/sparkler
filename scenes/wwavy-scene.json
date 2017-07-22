@@ -1,0 +1,24 @@
+{
+  "bvh-resolution": 2,
+  "bvh-min-objs": 2,
+  "camera": {
+    "size": 0.032,
+    "pixels": [512, 512],
+    "fov": 45,
+    "position": [100, 0, 0],
+    "look-at": [0, 0, 0],
+    "up": [0, 1, 0],
+    "bg-color": [0, 0, 0.2]
+  },
+  "light": [{
+    "type": 0,
+    "position": [80, 70, 80],
+    "color": [1, 1, 1],
+    "energy": 12566.3706143592
+  }],
+  "geometry": [{
+    "file": "wWavy.hair",
+    "material": 4
+  }]
+}
+

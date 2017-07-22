@@ -47,13 +47,38 @@ class Face {
   int vertexCount() const { return vs.size(); }
 };
 
+// Axis-Aligned Bounding Box
+class Aabb {
+ public:
+  Vector3d p, m; // plus minus TODO: fix name
+
+  Aabb() {}
+  Aabb(Vector3d p, Vector3d m) : p(p), m(m) {}
+  double volume() {
+    return (p.x() - m.x()) * (p.y() - m.y()) * (p.z() - m.z());
+  }
+  void merge(const Aabb& other);
+  void dump() {
+    printf("[%f %f %f] [%f %f %f]\n", m.x(), m.y(), m.z(), p.x(), p.y(), p.z());
+  }
+};
+
 class Object {
  public:
   Material material;
   double eta;
 
   virtual Intersection intersect(const Ray& ray) = 0;
+  virtual Aabb getAabb() = 0;
+  virtual bool belongsTo(const Aabb& box) = 0;
 };
+
+/*
+class Triangle : public Object {
+  std::vector<Vector3d> vs; // vertices
+  std::vector<Vector3d> ns; // normals
+}
+*/
 
 class Sphere : public Object {
   Vector3d c;
@@ -64,6 +89,8 @@ class Sphere : public Object {
     eta = e;
   }
   Intersection intersect(const Ray& ray);
+  virtual Aabb getAabb();
+  virtual bool belongsTo(const Aabb& box);
 };
 
 class Cylinder : public Object {
@@ -78,6 +105,8 @@ class Cylinder : public Object {
     eta = e;
   }
   Intersection intersect(const Ray& ray);
+  virtual Aabb getAabb();
+  virtual bool belongsTo(const Aabb& box);
 };
 
 class Color {
@@ -117,6 +146,17 @@ class AccelNode {
   Intersection traverse(const Ray& ray, double min_t);
 };
 
+class BvhNode {
+ public:
+  std::vector<std::unique_ptr<BvhNode>> children;
+  std::vector<std::unique_ptr<Object>> objects;
+  Vector3d p, m; // p: +xyz, n: -xyz boundery
+
+  void dump();
+  Intersection traverseLoop(const Ray& ray);
+  Intersection traverse(const Ray& ray, double min_t);
+};
+
 class Geometry {
  public:
   std::vector<std::shared_ptr<Vector3d>> ps; // positions of vertices
@@ -125,6 +165,7 @@ class Geometry {
   Material material;
   double eta; // refractive index
   std::unique_ptr<AccelNode> root;
+  std::unique_ptr<BvhNode> obj_root;
 
   std::vector<std::unique_ptr<Object>> objects;
   double curve_thickness;

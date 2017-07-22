@@ -4,16 +4,6 @@
 #include "geometry.h"
 #include <stack>
 
-class Aabb {
- public:
-  Vector3d p, m;
-
-  Aabb(Vector3d p_, Vector3d m_) : p(p_), m(m_) {}
-  double volume() {
-    return (p.x() - m.x()) * (p.y() - m.y()) * (p.z() - m.z());
-  }
-};
-
 template <class T>
 class Store {
  public:
@@ -69,4 +59,5 @@ class RawStore {
 typedef Store<AccelNode *> NodeStore;
 
 std::unique_ptr<AccelNode> separateGeometryBvh(std::vector<Face> fs);
+std::unique_ptr<BvhNode> constructBvh(std::vector<std::unique_ptr<Object>> objects);
 #endif

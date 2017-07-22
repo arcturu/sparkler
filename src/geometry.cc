@@ -156,7 +156,11 @@ Intersection Geometry::intersect(const Ray& ray) const {
     it.material = material;
     it.eta = eta;
   }
-  // TODO accel
+
+//  Intersection it2 = obj_root->traverseLoop(ray);
+//  if (it2.hit && (!it.hit || it2.t < it.t)) {
+//    it = it2;
+//  }
   for (auto& obj : objects) {
     Intersection it2 = obj->intersect(ray);
     if (it2.hit && (!it.hit || it2.t < it.t)) {
@@ -168,6 +172,7 @@ Intersection Geometry::intersect(const Ray& ray) const {
 
 void Geometry::prepare() {
   root = separateGeometryBvh(fs);
+//  obj_root = constructBvh(std::move(objects));
 }
 
 void Camera::up(Vector3d up) {
@@ -235,6 +240,37 @@ Intersection Sphere::intersect(const Ray& ray) {
   return it;
 }
 
+Aabb Sphere::getAabb() {
+  Vector3d rvec(r, r, r);
+  return Aabb(c + rvec, c - rvec);
+}
+
+// sphere-aabb intersection
+// https://studiofreya.com/3d-math-and-physics/sphere-vs-aabb-collision-detection-test/
+double distPointAabb1d(double p, double bmin, double bmax) {
+  if (p < bmin) {
+    return pow(bmin - p, 2);
+  }
+  if (p > bmax) {
+    return pow(p - bmax, 2);
+  }
+  return 0;
+}
+double distPointAabb(const Vector3d& p, const Aabb& box) {
+  double sq = 0;
+  sq += distPointAabb1d(p.x(), box.m.x(), box.p.x());
+  sq += distPointAabb1d(p.y(), box.m.y(), box.p.y());
+  sq += distPointAabb1d(p.z(), box.m.z(), box.p.z());
+  return sq;
+}
+bool Sphere::belongsTo(const Aabb& box) {
+  if (distPointAabb(c, box) <= r * r) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 // http://mrl.nyu.edu/~dzorin/rend05/lecture2.pdf
 Intersection Cylinder::intersect(const Ray& ray) {
   Vector3d v = ray.dir - ray.dir.dot(dir) * dir;
@@ -264,4 +300,36 @@ Intersection Cylinder::intersect(const Ray& ray) {
     }
   }
   return it;
+}
+
+Aabb Cylinder::getAabb() {
+  // using circumscribed sphere
+  // TODO more precisely
+  Vector3d c = src + (len / 2) * dir.normalize();
+  Vector3d n = dir.cross(dir.normalize() + Vector3d(0.1, 0, 0)).normalize();
+  double d = (c - (src + r * n)).length();
+  Vector3d dvec(d, d, d);
+  return Aabb(c + dvec, c - dvec);
+}
+
+bool Cylinder::belongsTo(const Aabb& box) {
+  // using circumscribed sphere
+  // TODO more precisely
+  Vector3d c = src + (len / 2) * dir.normalize();
+  Vector3d n = dir.cross(dir.normalize() + Vector3d(0.1, 0, 0)).normalize();
+  double d = (c - (src + r * n)).length();
+  if (distPointAabb(c, box) <= d * d) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void Aabb::merge(const Aabb& other) {
+  if (p.x() < other.p.x()) { p.x(other.p.x()); }
+  if (p.y() < other.p.y()) { p.y(other.p.y()); }
+  if (p.z() < other.p.z()) { p.z(other.p.z()); }
+  if (m.x() > other.m.x()) { m.x(other.m.x()); }
+  if (m.y() > other.m.y()) { m.y(other.m.y()); }
+  if (m.z() > other.m.z()) { m.z(other.m.z()); }
 }

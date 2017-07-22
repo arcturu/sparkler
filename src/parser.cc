@@ -181,31 +181,55 @@ Geometry ParseHair(const std::string path) {
   unsigned int num_vertices_read_in_current_strand = 0;
   Vector3d center;
   Vector3d prev_point;
+  double len_avg = 0;
+  double num_cylinders = 0;
+  double max_len = 0;
+
+  num_vertices = 100; // FIXME for debug
+
   while (file && num_total_vertices_read < num_vertices) {
     float x, y, z;
     file.read((char *)&x, 4);
     file.read((char *)&y, 4);
     file.read((char *)&z, 4);
-    if (num_vertices_read_in_current_strand == 0) {
-      prev_point = Vector3d(x, y, z);
-    } else {
-      Vector3d curr_point(x, y, z);
-      geo.objects.push_back(std::unique_ptr<Object>(new Cylinder(prev_point, curr_point, (prev_point - curr_point).length(), thickness, Hair, 1.0))); // TODO verify material and eta
-      prev_point = curr_point;
+
+    Vector3d curr_point(x, y, z);
+    geo.objects.push_back(std::unique_ptr<Object>(new Sphere(curr_point, thickness, Hair, 1.0)));
+    if (num_vertices_read_in_current_strand != 0) {
+      geo.objects.push_back(std::unique_ptr<Object>(new Cylinder(prev_point, (curr_point - prev_point).normalize(), (prev_point - curr_point).length(), thickness, Hair, 1.0))); // TODO verify material and eta
+      Logger::info(prev_point.toString());
+      Logger::info((curr_point - prev_point).toString());
+      len_avg += (prev_point - curr_point).length();
+      if ((prev_point - curr_point).length() > max_len) {
+        max_len = (prev_point - curr_point).length();
+      }
+      num_cylinders += 1;
     }
-//    printf("%f %f %f\n", x, y, z);
+    prev_point = curr_point;
     num_total_vertices_read++;
     num_vertices_read_in_current_strand++;
     if (num_vertices_read_in_current_strand - 1 >= default_num_segments_in_strand) {
       num_vertices_read_in_current_strand = 0;
     }
   }
-  if (num_total_vertices_read != num_vertices) {
-    THROW_EXCEPTION(std::string("Mismatch in num of vertices! In header: ") +
-        std::to_string(num_vertices) + std::string("; Actual: ") +
-        std::to_string(num_total_vertices_read));
-  }
-//  geo.objects.push_back(std::unique_ptr<Object>(new Cylinder(Vector3d(0, 0, 0), Vector3d(0.3, 1, 0), 10, 5, Diffuse, 1.0))); // TODO verify material and eta
+//  printf("average length: %f\n", len_avg / num_cylinders);
+//  printf("max length: %f\n", max_len);
+
+
+
+
+
+//  if (num_total_vertices_read != num_vertices) {
+//    THROW_EXCEPTION(std::string("Mismatch in num of vertices! In header: ") +
+//        std::to_string(num_vertices) + std::string("; Actual: ") +
+//        std::to_string(num_total_vertices_read));
+//  }
+
+
+
+
+//  geo.objects.push_back(std::unique_ptr<Object>(new Sphere(Vector3d(0, 0, 0), 5, Diffuse, 1.0)));
+//  geo.objects.push_back(std::unique_ptr<Object>(new Cylinder(Vector3d(0, 0, 0), Vector3d(-0.3, 1, 0), 10, 5, Diffuse, 1.0))); // TODO verify material and eta
 
   return geo;
 }

@@ -242,6 +242,8 @@ Pixel<double> shade(Scene& scene, const Ray& ray, const Intersection& it, unsign
     }
   } else if (it.material == Glossy) {
     pix = getIrradiance(scene, it) + getGlossy(scene, it, ray);
+  } else if (it.material == Hair) {
+    pix = getIrradiance(scene, it); // TODO impl here
   } else {
     Logger::error(std::string("Unknown material: ") + std::to_string(it.material));
   }

@@ -49,6 +49,16 @@ Aabb boundingBox(const std::vector<Face>& fs) {
   return a;
 }
 
+Aabb boundingBox(const std::vector<std::unique_ptr<Object>>& objects) {
+  const double inf = std::numeric_limits<double>::infinity();
+  Vector3d p(-inf, -inf, -inf), m(inf, inf, inf);
+  Aabb box;
+  for (const auto& obj : objects) {
+    box.merge(obj->getAabb());
+  }
+  return box;
+}
+
 double costSeparationBvh(const std::vector<Face>& fs1, const std::vector<Face>& fs2, double sv) {
   Aabb a1 = boundingBox(fs1);
   Aabb a2 = boundingBox(fs2);
@@ -207,4 +217,109 @@ void AccelNode::dump() {
       (*c)->dump();
     }
   }
+}
+
+std::unique_ptr<BvhNode> constructBvh(std::vector<std::unique_ptr<Object>> objects) {
+  stat_num_accel_node++;
+  std::unique_ptr<BvhNode> n(new BvhNode);
+  Aabb a = boundingBox(objects);
+  a.dump();
+  n->p = a.p;
+  n->m = a.m;
+  double max_volume = 0;
+  if (objects.size() > G_MIN_OBJS) {
+    std::vector<int> objs1, objs2;
+    double min_c = std::numeric_limits<double>::infinity();
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < G_SEARCH_DIV_RES; j++) {
+        Vector3d tmp_p = n->p;
+        tmp_p.p[i] = n->m[i] + (n->p[i] - n->m[i]) / G_SEARCH_DIV_RES * j;
+        Aabb tmp_bound(tmp_p, n->m);
+        std::vector<int> tmp_objs1, tmp_objs2;
+        Aabb tmp_box1, tmp_box2;
+        for (int k = 0; k < objects.size(); k++) {
+          if (max_volume < objects[k]->getAabb().volume()) {
+            max_volume = objects[k]->getAabb().volume();
+          }
+          if (objects[k]->belongsTo(tmp_bound)) {
+            tmp_objs1.push_back(k);
+            tmp_box1.merge(objects[k]->getAabb());
+          } else {
+            tmp_objs2.push_back(k);
+            tmp_box2.merge(objects[k]->getAabb());
+          }
+        }
+        double sv = tmp_box1.volume() + tmp_box2.volume();
+        double c = tmp_box1.volume() / sv * tmp_objs1.size()
+          + tmp_box2.volume() / sv * tmp_objs2.size();
+        if (c < min_c) {
+          min_c = c;
+          objs1 = tmp_objs1;
+          objs2 = tmp_objs2;
+        }
+      }
+    }
+    printf("max volume: %f\n", max_volume);
+    if (objs1.size() != 0 &&
+        objs2.size() != 0 &&
+        (objs1.size() < objects.size() || objs2.size() < objects.size())) {
+      printf("divide: %lu %lu\n", objs1.size(), objs2.size());
+      std::vector<std::unique_ptr<Object>> c1, c2;
+      for (auto i : objs1) {
+        c1.push_back(std::move(objects[i]));
+      }
+      for (auto i : objs2) {
+        c2.push_back(std::move(objects[i]));
+      }
+      n->children.push_back(constructBvh(std::move(c1)));
+      n->children.push_back(constructBvh(std::move(c2)));
+    } else {
+      printf("leaf: %lu\n", objects.size());
+      stat_num_accel_leaf++;
+      n->objects = std::move(objects);
+    }
+  } else {
+    printf("leaf: %lu\n", objects.size());
+    stat_num_accel_leaf++;
+    n->objects = std::move(objects);
+  }
+  return n;
+}
+
+
+Intersection BvhNode::traverseLoop(const Ray& ray) {
+  static Store<BvhNode *> ns;
+
+  Intersection it;
+  it.t = std::numeric_limits<double>::infinity();
+  double t;
+  int stat_max_num_ns = 0;
+  ns.push(this);
+  while (!ns.empty()) {
+    stat_num_traverse++;
+    // TODO: improve search order
+    BvhNode *n = ns.top(); ns.pop();
+    if (n->children.size() == 0) { // n is a leef node
+      for (const auto& obj : objects) {
+        Intersection tmp_it = obj->intersect(ray);
+        if (tmp_it.hit && tmp_it.t < it.t) {
+          it = tmp_it;
+        }
+      }
+    } else {
+      for (int i = 0; i < n->children.size(); i++) {
+        bool hit = intersectBox(n->children[i]->m, n->children[i]->p, ray, &t);
+        if (hit && t < it.t) {
+          ns.push(n->children[i].get());
+        }
+      }
+    }
+    if (stat_max_num_ns < ns.size()) {
+      stat_max_num_ns = ns.size();
+    }
+  }
+//  if (stat_max_num_ns > 10) {
+//    std::cout << "[stat] max_num_ns: " << stat_max_num_ns << std::endl;
+//  }
+  return it;
 }
