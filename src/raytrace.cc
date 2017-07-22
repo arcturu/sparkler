@@ -19,7 +19,7 @@ Ray generateCameraRay(const Camera& cam, int x, int y) {
 }
 
 Ray generateCameraRayLens(const Camera& cam, int x, int y) {
-  double lens_d = 5; // TODO from json
+  double lens_d = 7; // TODO from json
   double lens_r = 0.1; // TODO from json
   Vector3d src = (cam.film.resolution() * (y + 0.5) - cam.film.height() / 2.0) * cam.u()
     + (cam.film.resolution() * (x + 0.5) - cam.film.width() / 2.0) * cam.v()
@@ -138,34 +138,38 @@ Pixel<double> getIrradiance(Scene& scene, const Intersection& it) {
     }
   }
   // image based lighting
-  if (scene.camera.bgImage().height() > 0) {
-    const int N = 10;
-    int success_count = 0;
-    Pixel<double> pix_ibl;
-    for (int i = 0; i < N; i++) {
-      Ray ray;
-      ray.src = it.p;
-      ray.dir = getRandomVector();
-      Intersection img_it = getShadowIntersection(scene, ray, 1e100);
-      if (!img_it.hit) {
-        pix_ibl = pix_ibl + 0.3 * getImageLighting(scene, ray);
-        success_count += 1;
-      }
-    }
-    pix = pix + pix_ibl / success_count;
-  }
+//  if (scene.camera.bgImage().height() > 0) {
+//    const int N = 10;
+//    int success_count = 0;
+//    Pixel<double> pix_ibl;
+//    for (int i = 0; i < N; i++) {
+//      Ray ray;
+//      ray.src = it.p;
+//      ray.dir = getRandomVector();
+//      Intersection img_it = getShadowIntersection(scene, ray, 1e100);
+//      if (!img_it.hit) {
+//        pix_ibl = pix_ibl + 0.3 * getImageLighting(scene, ray);
+//        success_count += 1;
+//      }
+//    }
+//    pix = pix + pix_ibl / success_count;
+//  }
   return pix;
 }
 
-Pixel<double> getGlossy(const Scene& scene, const Intersection& it, const Ray& ray) {
+Pixel<double> getGlossy(Scene& scene, const Intersection& it, const Ray& ray) {
   Pixel<double> pix;
   for (const auto& l : scene.lights) {
     Ray shadow_ray;
     shadow_ray.src = it.p;
     shadow_ray.dir = l.p - it.p;
+    Intersection shadow_it = getShadowIntersection(scene, shadow_ray, shadow_ray.dir.length());
+    if (shadow_it.hit) {
+      continue;
+    }
     Vector3d h = shadow_ray.dir.normalize() - ray.dir.normalize();
-    double g = 3;
-    double glossy = fmax(0, pow(it.n.dot(h.normalize()), g)) * 255 * 1;
+    double g = 40;
+    double glossy = fmax(0, pow(it.n.dot(h.normalize()), g)) * 255 * 50;
     pix.r += glossy;
     pix.g += glossy;
     pix.b += glossy;
@@ -261,7 +265,7 @@ Pixel<double> toneMap(const Pixel<double>& pix) {
 }
 
 Image<uint8_t> raytrace(Scene& scene) {
-  const int N = 1;
+  const int N = 10;
   Image<uint8_t> img(scene.camera.film.xpixels(), scene.camera.film.ypixels());
 
   for (int y = 0; y < img.height(); y++) {
@@ -280,6 +284,7 @@ Image<uint8_t> raytrace(Scene& scene) {
         pix.b += tmp_pix.b / N;
       }
 //      printf ("%d %d %f %f %f\n", x, y, pix.r, pix.g, pix.b);
+//      img.m[img.height() - y - 1][img.width() - x - 1] = saturate(toneMap(pix), 255);
       img.m[y][x] = saturate(toneMap(pix), 255);
     }
   }
