@@ -95,7 +95,7 @@ Pixel<uint8_t> saturate(Pixel<double> pix, uint8_t limit) {
 }
 
 Intersection getShadowIntersection(Scene& scene, Ray shadow_ray, double maxdist) {
-  const double SHADOW_EPS = 1e-13;
+  const double SHADOW_EPS = 1e-10;
   Vector3d p = shadow_ray.src;
   Intersection it = scene.intersect(shadow_ray);
   while (it.hit && (it.p - p).length() < SHADOW_EPS) {

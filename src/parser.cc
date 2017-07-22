@@ -83,6 +83,133 @@ Geometry ParseObj(const std::string path) {
   return geo;
 }
 
+Geometry ParseHair(const std::string path) {
+  std::ifstream file(path);
+  if (!file) {
+    THROW_EXCEPTION(std::string("Could not open file: ") + path);
+  }
+
+  std::string line;
+  Geometry geo;
+
+  // read preamble ("HAIR")
+  char preamble[4];
+  file.read(preamble, 4);
+  if (strncmp(preamble, "HAIR", 4) != 0) {
+    THROW_EXCEPTION(std::string("Unknown preamble: ") + preamble[0] + preamble[1] + preamble[2] + preamble[3]);
+  }
+
+  // read num of strands
+  unsigned int num_strands;
+  file.read((char *)&num_strands, 4);
+  if (!file) {
+    THROW_EXCEPTION(std::string("Could not read value from: ") + path);
+  }
+
+  // read num of vertices
+  unsigned int num_vertices;
+  file.read((char *)&num_vertices, 4);
+  if (!file) {
+    THROW_EXCEPTION(std::string("Could not read value from: ") + path);
+  }
+
+  // read flags
+  // Bit-0 is 1 if the file has segments array.
+  // Bit-1 is 1 if the file has points array (this bit must be 1).
+  // Bit-2 is 1 if the file has thickness array.
+  // Bit-3 is 1 if the file has transparency array.
+  // Bit-4 is 1 if the file has color array.
+  // Bit-5 to Bit-31 are reserved for future extension (must be 0).
+  unsigned int flags;
+  file.read((char *)&flags, 4);
+  if (!file) {
+    THROW_EXCEPTION(std::string("Could not read value from: ") + path);
+  }
+  if (flags != 0x00000002) {
+    THROW_EXCEPTION(std::string("Not supported flags: ") + std::to_string(flags));
+  }
+
+  // read default num of segments in one hair strand
+  unsigned int default_num_segments_in_strand;
+  file.read((char *)&default_num_segments_in_strand, 4);
+  if (!file) {
+    THROW_EXCEPTION(std::string("Could not read value from: ") + path);
+  }
+
+  // read default thickness of hair strands
+  float thickness;
+  file.read((char *)&thickness, 4);
+  if (!file) {
+    THROW_EXCEPTION(std::string("Could not read value from: ") + path);
+  }
+
+  // read default transparency of hair strands
+  float transparency;
+  file.read((char *)&transparency, 4);
+  if (!file) {
+    THROW_EXCEPTION(std::string("Could not read value from: ") + path);
+  }
+
+  // read default color of hair strands
+  float color_r;
+  float color_g;
+  float color_b;
+  file.read((char *)&color_r, 4);
+  file.read((char *)&color_g, 4);
+  file.read((char *)&color_b, 4);
+  if (!file) {
+    THROW_EXCEPTION(std::string("Could not read value from: ") + path);
+  }
+
+  // read through remaining entries
+  file.seekg(22 * 4, std::ios_base::cur);
+
+  Logger::info(std::string("[num_strands: ") + std::to_string(num_strands) +
+      std::string(", num_vertices: ") + std::to_string(num_vertices) +
+      std::string(", flags: ") + std::to_string(flags) +
+      std::string(", num_segments: ") + std::to_string(default_num_segments_in_strand) +
+      std::string(", thickness: ") + std::to_string(thickness) +
+      std::string(", transparency: ") + std::to_string(transparency) +
+      std::string(", r: ") + std::to_string(color_r) +
+      std::string(", g: ") + std::to_string(color_g) +
+      std::string(", b: ") + std::to_string(color_b) +
+      std::string("]"));
+
+  std::vector<std::vector<Vector3d>> hair_strands;
+  hair_strands.emplace_back();
+  unsigned int num_total_vertices_read = 0;
+  unsigned int num_vertices_read_in_current_strand = 0;
+  Vector3d center;
+  Vector3d prev_point;
+  while (file && num_total_vertices_read < num_vertices) {
+    float x, y, z;
+    file.read((char *)&x, 4);
+    file.read((char *)&y, 4);
+    file.read((char *)&z, 4);
+    if (num_vertices_read_in_current_strand == 0) {
+      prev_point = Vector3d(x, y, z);
+    } else {
+      Vector3d curr_point(x, y, z);
+      geo.objects.push_back(std::unique_ptr<Object>(new Cylinder(prev_point, curr_point, (prev_point - curr_point).length(), thickness, Hair, 1.0))); // TODO verify material and eta
+      prev_point = curr_point;
+    }
+//    printf("%f %f %f\n", x, y, z);
+    num_total_vertices_read++;
+    num_vertices_read_in_current_strand++;
+    if (num_vertices_read_in_current_strand - 1 >= default_num_segments_in_strand) {
+      num_vertices_read_in_current_strand = 0;
+    }
+  }
+  if (num_total_vertices_read != num_vertices) {
+    THROW_EXCEPTION(std::string("Mismatch in num of vertices! In header: ") +
+        std::to_string(num_vertices) + std::string("; Actual: ") +
+        std::to_string(num_total_vertices_read));
+  }
+//  geo.objects.push_back(std::unique_ptr<Object>(new Cylinder(Vector3d(0, 0, 0), Vector3d(0.3, 1, 0), 10, 5, Diffuse, 1.0))); // TODO verify material and eta
+
+  return geo;
+}
+
 Camera ParseObjxCamera(const char *path, bool *st) {
   std::ifstream file(path);
   std::string line;
@@ -135,6 +262,15 @@ Vector3d to_v3d(const T v) {
   return v3;
 }
 
+bool isHair(std::string file_name) {
+  std::vector<std::string> terms = split(file_name, '.');
+  if (terms.size() > 0 && terms[terms.size()-1] == "hair") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 Scene ParseScene(const char *path, const char *obj_dir) {
   Scene scene;
   std::ifstream ifs(path);
@@ -181,8 +317,14 @@ Scene ParseScene(const char *path, const char *obj_dir) {
                               color);
   }
   for (const auto& jobj : json["geometry"].array_items()) {
-    Logger::info(std::string("loading ") + jobj["file"].string_value());
-    Geometry geo = ParseObj(std::string(obj_dir) + "/" + jobj["file"].string_value());
+    std::string file_name = jobj["file"].string_value();
+    Logger::info(std::string("loading ") + file_name);
+    Geometry geo;
+    if (isHair(file_name)) {
+      geo = ParseHair(std::string(obj_dir) + "/" + file_name);
+    } else {
+      geo = ParseObj(std::string(obj_dir) + "/" + file_name);
+    }
     if (!jobj["transform"].is_null()) {
       double M[4][4];
       for (int i = 0; i < 4; i++ ){

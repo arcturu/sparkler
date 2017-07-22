@@ -16,7 +16,8 @@ typedef enum {
   Diffuse = 0,
   Mirror = 1,
   Glass = 2,
-  Glossy = 3
+  Glossy = 3,
+  Hair = 4,
 } Material;
 
 class Intersection {
@@ -44,6 +45,25 @@ class Face {
   std::vector<Vertex> vs;
 
   int vertexCount() const { return vs.size(); }
+};
+
+class Object {
+ public:
+  virtual Intersection intersect(const Ray& ray) = 0;
+};
+
+class Cylinder : public Object {
+ private:
+  Vector3d src;
+  Vector3d dir;
+  double len;
+  double r;
+  Material material;
+  double eta;
+ public:
+  Cylinder(Vector3d s, Vector3d d, double l, double r, Material m, double e)
+    : src(s), dir(d), len(l), r(r), material(m), eta(e) {}
+  Intersection intersect(const Ray& ray);
 };
 
 class Color {
@@ -89,8 +109,12 @@ class Geometry {
   std::vector<std::shared_ptr<Vector3d>> ns; // normals at vertices
   std::vector<Face> fs; // faces
   Material material;
-  double eta;
+  double eta; // refractive index
   std::unique_ptr<AccelNode> root;
+
+  std::vector<std::unique_ptr<Object>> objects;
+  double curve_thickness;
+  double curve_transparency;
 
   void dump();
   void prepare();

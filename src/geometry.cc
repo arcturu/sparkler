@@ -156,6 +156,13 @@ Intersection Geometry::intersect(const Ray& ray) const {
     it.material = material;
     it.eta = eta;
   }
+  // TODO accel
+  for (auto& obj : objects) {
+    Intersection it2 = obj->intersect(ray);
+    if (it2.hit && (!it.hit || it2.t < it.t)) {
+      it = it2;
+    }
+  }
   return it;
 }
 
@@ -199,4 +206,38 @@ void Film::fromRes(double w, double h, double z, double res) {
   pix_w_ = w_ / res_;
   pix_h_ = h_ / res_;
   fov_ = 2 * atan(w_ / 2 / z_);
+}
+
+// http://mrl.nyu.edu/~dzorin/rend05/lecture2.pdf
+Intersection Cylinder::intersect(const Ray& ray) {
+  Vector3d v = ray.dir - ray.dir.dot(dir) * dir;
+  Vector3d w = ray.src - src - (ray.src - src).dot(dir) * dir;
+  double A = v.dot(v);
+  double B = 2 * v.dot(w);
+  double C = w.dot(w) - r * r;
+
+  Intersection it;
+  double det = B * B - 4 * A * C;
+  if (det < 0 || A == 0) { // A == 0 => B == 0
+    return it;
+  }
+  int num_candidates = 2;
+  double t[] = {(-B + sqrt(det)) / (2 * A), (-B - sqrt(det)) / (2 * A)};
+  it.t = std::numeric_limits<double>::infinity();
+  for (int i = 0; i < num_candidates; i++) {
+    if (dir.dot(ray.src + t[i] * ray.dir - src) > 0 &&
+        dir.dot(ray.src + t[i] * ray.dir - (src + len * dir)) < 0 &&
+        t[i] < it.t) {
+      it.hit = true;
+      it.t = t[i];
+      it.p = ray.src + t[i] * ray.dir;
+      it.n = (it.p - (src + dir.dot(ray.src + t[i] * ray.dir - src) * dir)).normalize();
+      it.material = material;
+      it.eta = eta;
+    }
+  }
+  if (it.hit) {
+//    printf("%f %f %f\n", it.p.x(), it.p.y(), it.p.z());
+  }
+  return it;
 }
