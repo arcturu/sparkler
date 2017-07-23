@@ -208,32 +208,6 @@ Color getGlossy(Scene& scene, const Intersection& it, const Ray& ray) {
   return pix;
 }
 
-Color getKajiyaKayDiffuse(Scene& scene, const Intersection& it, const Ray& ray) {
-  Color d_total;
-  for (const auto& light : scene.lights) {
-    double d = 1 - pow(it.tan.dot((light.p - it.p).normalize()), 2);
-    if (d > 0) {
-      d_total = d_total + sqrt(d) * getIrradianceSingle(scene, light, it);
-    }
-  }
-  return d_total;
-}
-
-Color getKajiyaKaySpecular(Scene& scene, const Intersection& it, const Ray& ray, double r) {
-  Color s_total;
-  for (const auto& light : scene.lights) {
-    double cos_tl = it.tan.dot((light.p - it.p).normalize());
-    double cos_tv = it.tan.dot(-ray.dir);
-    double sin_tl = (cos_tl * cos_tl < 1) ? sqrt(1 - cos_tl * cos_tl) : 0;
-    double sin_tv = (cos_tv * cos_tv < 1) ? sqrt(1 - cos_tv * cos_tv) : 0;
-    double s = sin_tl * sin_tv - cos_tl * cos_tv;
-    if (s > 0) {
-      s_total = s_total + pow(s, r) * getIrradianceSingle(scene, light, it);
-    }
-  }
-  return s_total;
-}
-
 // TODO: support other types of lights
 Color shade(Scene& scene, const Ray& ray, const Intersection& it, unsigned int ttl) {
   Color pix;
@@ -300,8 +274,30 @@ Color shade(Scene& scene, const Ray& ray, const Intersection& it, unsigned int t
   } else if (it.material == Glossy) {
     pix = getIrradiance(scene, it) + getGlossy(scene, it, ray);
   } else if (it.material == Hair) {
-    Color diffuse = getKajiyaKayDiffuse(scene, it, ray);
-    Color specular = getKajiyaKaySpecular(scene, it, ray, 80);
+    double r = 80;
+    Color diffuse;
+    Color specular;
+
+    // Kajiya-Kay Model
+    for (const auto& light : scene.lights) {
+      Color irr = getIrradianceSingle(scene, light, it);
+      // Diffuse
+      double d = 1 - pow(it.tan.dot((light.p - it.p).normalize()), 2);
+      if (d > 0) {
+        diffuse = diffuse + sqrt(d) * irr;
+      }
+
+      // Specular
+      double cos_tl = it.tan.dot((light.p - it.p).normalize());
+      double cos_tv = it.tan.dot(-ray.dir);
+      double sin_tl = (cos_tl * cos_tl < 1) ? sqrt(1 - cos_tl * cos_tl) : 0;
+      double sin_tv = (cos_tv * cos_tv < 1) ? sqrt(1 - cos_tv * cos_tv) : 0;
+      double s = sin_tl * sin_tv - cos_tl * cos_tv;
+      if (s > 0) {
+        specular = specular + pow(s, r) * irr;
+      }
+    }
+
 //    printf("%f %f\n", diffuse.r, specular.r);
     pix = (diffuse + specular) * it.color;
   } else {
