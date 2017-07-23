@@ -8,6 +8,10 @@
 #include "stat.h"
 #include "logger.h"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 Ray generateCameraRay(const Camera& cam, int x, int y) {
   Ray r;
   r.src = (cam.film.resolution() * (y + 0.5) - cam.film.height() / 2.0) * cam.u()
@@ -108,7 +112,7 @@ Intersection getShadowIntersection(Scene& scene, Ray shadow_ray, double maxdist)
   return it;
 }
 
-Pixel<double> getImageLighting(Scene& scene, const Ray& ray) {
+Color getImageLighting(Scene& scene, const Ray& ray) {
   Vector3d center(0, 0, 1);
   double t = ray.dir.normalize().dot(center);
   Vector3d dir = ray.dir.normalize() - center;
@@ -121,8 +125,8 @@ Pixel<double> getImageLighting(Scene& scene, const Ray& ray) {
   return 255 * scene.camera.bgImage().m[y][x];
 }
 
-Pixel<double> getIrradiance(Scene& scene, const Intersection& it) {
-  Pixel<double> pix;
+Color getIrradiance(Scene& scene, const Intersection& it) {
+  Color pix;
   for (const auto& l : scene.lights) {
     Ray shadow_ray;
     shadow_ray.src = it.p;
@@ -157,8 +161,8 @@ Pixel<double> getIrradiance(Scene& scene, const Intersection& it) {
   return pix;
 }
 
-Pixel<double> getGlossy(Scene& scene, const Intersection& it, const Ray& ray) {
-  Pixel<double> pix;
+Color getGlossy(Scene& scene, const Intersection& it, const Ray& ray) {
+  Color pix;
   for (const auto& l : scene.lights) {
     Ray shadow_ray;
     shadow_ray.src = it.p;
@@ -178,8 +182,8 @@ Pixel<double> getGlossy(Scene& scene, const Intersection& it, const Ray& ray) {
 }
 
 // TODO: support other types of lights
-Pixel<double> shade(Scene& scene, const Ray& ray, const Intersection& it, unsigned int ttl) {
-  Pixel<double> pix;
+Color shade(Scene& scene, const Ray& ray, const Intersection& it, unsigned int ttl) {
+  Color pix;
   if (ttl < 1) {
 //    pix.r = 255; pix.g = 0; pix.b = 0; // for debug
     pix.r = 0; pix.g = 0; pix.b = 0;
@@ -196,7 +200,7 @@ Pixel<double> shade(Scene& scene, const Ray& ray, const Intersection& it, unsign
     return pix;
   }
   if (it.material == Diffuse) {
-    pix = getIrradiance(scene, it);
+    pix = getIrradiance(scene, it) * it.color;
   } else if (it.material == Mirror) {
     Ray reflected_ray;
     reflected_ray.src = it.p;
@@ -243,7 +247,7 @@ Pixel<double> shade(Scene& scene, const Ray& ray, const Intersection& it, unsign
   } else if (it.material == Glossy) {
     pix = getIrradiance(scene, it) + getGlossy(scene, it, ray);
   } else if (it.material == Hair) {
-    pix = getIrradiance(scene, it); // TODO impl here
+    pix = getIrradiance(scene, it) * it.color; // TODO impl here
   } else {
     Logger::error(std::string("Unknown material: ") + std::to_string(it.material));
   }
@@ -267,9 +271,12 @@ Pixel<double> toneMap(const Pixel<double>& pix) {
 }
 
 Image<uint8_t> raytrace(Scene& scene) {
-  const int N = 10;
+  const int N = 1;
   Image<uint8_t> img(scene.camera.film.xpixels(), scene.camera.film.ypixels());
 
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
   for (int y = 0; y < img.height(); y++) {
     printf("%d\n", y);
     for (int x = 0; x < img.width(); x++) {
@@ -280,13 +287,11 @@ Image<uint8_t> raytrace(Scene& scene) {
         stat_num_ray++;
 
         Intersection it = scene.intersect(ray);
-        Pixel<double> tmp_pix = shade(scene, ray, it, 100);
+        Color tmp_pix = shade(scene, ray, it, 100);
         pix.r += tmp_pix.r / N;
         pix.g += tmp_pix.g / N;
         pix.b += tmp_pix.b / N;
       }
-//      printf ("%d %d %f %f %f\n", x, y, pix.r, pix.g, pix.b);
-//      img.m[img.height() - y - 1][img.width() - x - 1] = saturate(toneMap(pix), 255);
       img.m[y][x] = saturate(toneMap(pix), 255);
     }
   }

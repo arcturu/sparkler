@@ -4,9 +4,9 @@
   "camera": {
     "size": 0.032,
     "pixels": [1024, 1024],
-    "fov": 45,
+    "fov": 30,
     "position": [0, -180, 0],
-    "look-at": [0, 0, 0],
+    "look-at": [0, 0, 20],
     "up": [0, 0, 1],
     "bg-color": [0, 0, 0.2]
   },
@@ -17,7 +17,7 @@
     "energy": 12566.3706143592
   }],
   "geometry": [{
-    "file": "wWavy.hair",
+    "file": "straight.hair",
     "material": 4
   }]
 }

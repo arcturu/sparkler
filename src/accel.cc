@@ -1,5 +1,6 @@
 #include <cmath>
 #include <memory>
+#include <limits>
 #include "accel.h"
 #include "constant.h"
 #include "exception.h"
@@ -145,7 +146,7 @@ bool intersectBox(const Vector3d& m, const Vector3d& p, const Ray& ray, double *
 }
 
 Intersection AccelNode::traverseLoop(const Ray& ray) {
-  static NodeStore ns;
+  NodeStore ns;
 
   Intersection it;
   double min_t = std::numeric_limits<double>::infinity();
@@ -223,7 +224,6 @@ std::unique_ptr<BvhNode> constructBvh(std::vector<std::unique_ptr<Object>> objec
   stat_num_accel_node++;
   std::unique_ptr<BvhNode> n(new BvhNode);
   Aabb a = boundingBox(objects);
-  a.dump();
   n->p = a.p;
   n->m = a.m;
   double max_volume = 0;
@@ -233,7 +233,7 @@ std::unique_ptr<BvhNode> constructBvh(std::vector<std::unique_ptr<Object>> objec
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < G_SEARCH_DIV_RES; j++) {
         Vector3d tmp_p = n->p;
-        tmp_p.p[i] = n->m[i] + (n->p[i] - n->m[i]) / G_SEARCH_DIV_RES * j;
+        tmp_p.p[i] = n->m[i] + (n->p[i] - n->m[i]) / (G_SEARCH_DIV_RES + 1) * (j + 1);
         Aabb tmp_bound(tmp_p, n->m);
         std::vector<int> tmp_objs1, tmp_objs2;
         Aabb tmp_box1, tmp_box2;
@@ -260,8 +260,8 @@ std::unique_ptr<BvhNode> constructBvh(std::vector<std::unique_ptr<Object>> objec
       }
     }
     printf("max volume: %f\n", max_volume);
-    if (objs1.size() != 0 &&
-        objs2.size() != 0 &&
+    if (objs1.size() > 1 &&
+        objs2.size() > 1 &&
         (objs1.size() < objects.size() || objs2.size() < objects.size())) {
       printf("divide: %lu %lu\n", objs1.size(), objs2.size());
       std::vector<std::unique_ptr<Object>> c1, c2;
@@ -288,7 +288,7 @@ std::unique_ptr<BvhNode> constructBvh(std::vector<std::unique_ptr<Object>> objec
 
 
 Intersection BvhNode::traverseLoop(const Ray& ray) {
-  static Store<BvhNode *> ns;
+  Store<BvhNode *> ns;
 
   Intersection it;
   it.t = std::numeric_limits<double>::infinity();
@@ -300,7 +300,7 @@ Intersection BvhNode::traverseLoop(const Ray& ray) {
     // TODO: improve search order
     BvhNode *n = ns.top(); ns.pop();
     if (n->children.size() == 0) { // n is a leef node
-      for (const auto& obj : objects) {
+      for (const auto& obj : n->objects) {
         Intersection tmp_it = obj->intersect(ray);
         if (tmp_it.hit && tmp_it.t < it.t) {
           it = tmp_it;

@@ -2,6 +2,7 @@
 #define IMAGE_H_
 
 #include <vector>
+#include "vector3d.h"
 
 template <class T>
 class Pixel {
@@ -12,11 +13,24 @@ class Pixel {
 
   Pixel() : r(0), g(0), b(0) {}
   Pixel(T r, T g, T b) : r(r), g(g), b(b) {}
+  Pixel(const Vector3d& c) {
+    r = c.x();
+    g = c.y();
+    b = c.z();
+  }
 };
+
+typedef Pixel<double> Color;
 
 template<class T>
 inline Pixel<T> operator+(const Pixel<T> l, const Pixel<T> r) {
   Pixel<T> pix(l.r + r.r, l.g + r.g, l.b + r.b);
+  return pix;
+}
+
+template<class T>
+inline Pixel<T> operator*(const Pixel<T> l, const Pixel<T> r) {
+  Pixel<T> pix(l.r * r.r, l.g * r.g, l.b * r.b);
   return pix;
 }
 

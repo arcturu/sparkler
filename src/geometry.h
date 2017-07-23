@@ -28,6 +28,7 @@ class Intersection {
   Vector3d n;
   Material material;
   double eta;
+  Color color;
 
   Intersection() : hit(false) {};
   Intersection(bool hit_) : hit(hit_) {};
@@ -67,6 +68,7 @@ class Object {
  public:
   Material material;
   double eta;
+  Color color;
 
   virtual Intersection intersect(const Ray& ray) = 0;
   virtual Aabb getAabb() = 0;
@@ -84,9 +86,10 @@ class Sphere : public Object {
   Vector3d c;
   double r;
  public:
-  Sphere(Vector3d c, double r, Material m, double e) : c(c), r(r) {
+  Sphere(Vector3d c, double r, Material m, double e, Color col) : c(c), r(r) {
     material = m;
     eta = e;
+    color = col;
   }
   Intersection intersect(const Ray& ray);
   virtual Aabb getAabb();
@@ -100,26 +103,14 @@ class Cylinder : public Object {
   double len;
   double r;
  public:
-  Cylinder(Vector3d s, Vector3d d, double l, double r, Material m, double e) : src(s), dir(d), len(l), r(r) {
+  Cylinder(Vector3d s, Vector3d d, double l, double r, Material m, double e, Color c) : src(s), dir(d), len(l), r(r) {
     material = m;
     eta = e;
+    color = c;
   }
   Intersection intersect(const Ray& ray);
   virtual Aabb getAabb();
   virtual bool belongsTo(const Aabb& box);
-};
-
-class Color {
- public:
-  double r, g, b;
-
-  Color(double r_, double g_, double b_) : r(r_), g(g_), b(b_) {}
-  Color(const Vector3d& v) {
-    r = v.x();
-    g = v.y();
-    b = v.z();
-  }
-  Color() : r(0), g(0), b(0) {}
 };
 
 class Light {

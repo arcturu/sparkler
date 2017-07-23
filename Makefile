@@ -1,10 +1,10 @@
 TARGET = sparkler
-CXX = g++
-CXXFLAGS = -Wall -std=c++14 -O3
+CXX = g++-6
+CXXFLAGS = -Wall -std=c++14 -O3 -fopenmp
 SDIR = src
 ODIR = build
 SRCS = $(patsubst $(SDIR)/%, %, $(wildcard $(SDIR)/*.cc))
-OBJS = $(addprefix $(ODIR)/, $(patsubst %.cc, %.o, $(SRCS))) lib/json11/json11.o
+OBJS = $(addprefix $(ODIR)/, $(patsubst %.cc, %.o, $(SRCS)))
 
 .PHONY: all clean
 all: $(TARGET)
@@ -14,7 +14,11 @@ $(ODIR)/%.o: $(SDIR)/%.cc
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 $(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS) $(LIBDIRS)
+	cd lib/json11 && make && cd ../../
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS) $(LIBDIRS) lib/json11/libjson11.a
+
+test: $(filter-out $(ODIR)/main.o, $(OBJS))
+	$(CXX) $(CXXFLAGS) -o test-main test/test.cc $^ $(LIBS) $(LIBDIRS)
 
 clean:
 	cd lib/json11 && make clean && cd ../../

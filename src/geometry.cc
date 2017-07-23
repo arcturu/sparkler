@@ -157,22 +157,22 @@ Intersection Geometry::intersect(const Ray& ray) const {
     it.eta = eta;
   }
 
-//  Intersection it2 = obj_root->traverseLoop(ray);
-//  if (it2.hit && (!it.hit || it2.t < it.t)) {
-//    it = it2;
-//  }
-  for (auto& obj : objects) {
-    Intersection it2 = obj->intersect(ray);
-    if (it2.hit && (!it.hit || it2.t < it.t)) {
-      it = it2;
-    }
+  Intersection it2 = obj_root->traverseLoop(ray);
+  if (it2.hit && (!it.hit || it2.t < it.t)) {
+    it = it2;
   }
+//  for (auto& obj : objects) {
+//    Intersection it2 = obj->intersect(ray);
+//    if (it2.hit && (!it.hit || it2.t < it.t)) {
+//      it = it2;
+//    }
+//  }
   return it;
 }
 
 void Geometry::prepare() {
   root = separateGeometryBvh(fs);
-//  obj_root = constructBvh(std::move(objects));
+  obj_root = constructBvh(std::move(objects));
 }
 
 void Camera::up(Vector3d up) {
@@ -235,6 +235,7 @@ Intersection Sphere::intersect(const Ray& ray) {
       it.n = (it.p - c).normalize();
       it.material = material;
       it.eta = eta;
+      it.color = color;
     }
   }
   return it;
@@ -297,6 +298,7 @@ Intersection Cylinder::intersect(const Ray& ray) {
       it.n = (it.p - (src + dir.dot(ray.src + t[i] * ray.dir - src) * dir)).normalize();
       it.material = material;
       it.eta = eta;
+      it.color = color;
     }
   }
   return it;

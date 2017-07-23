@@ -3,6 +3,7 @@
 #include <sstream>
 #include <iostream>
 #include <vector>
+#include <cstring>
 #include "parser.h"
 #include "geometry.h"
 #include "accel.h"
@@ -126,7 +127,8 @@ Geometry ParseHair(const std::string path) {
     THROW_EXCEPTION(std::string("Could not read value from: ") + path);
   }
   if (flags != 0x00000002) {
-    THROW_EXCEPTION(std::string("Not supported flags: ") + std::to_string(flags));
+// FIXME uncomment
+//    THROW_EXCEPTION(std::string("Not supported flags: ") + std::to_string(flags));
   }
 
   // read default num of segments in one hair strand
@@ -185,7 +187,7 @@ Geometry ParseHair(const std::string path) {
   double num_cylinders = 0;
   double max_len = 0;
 
-  num_vertices = 100; // FIXME for debug
+//  num_vertices = 10000; // FIXME for debug
 
   while (file && num_total_vertices_read < num_vertices) {
     float x, y, z;
@@ -194,11 +196,9 @@ Geometry ParseHair(const std::string path) {
     file.read((char *)&z, 4);
 
     Vector3d curr_point(x, y, z);
-    geo.objects.push_back(std::unique_ptr<Object>(new Sphere(curr_point, thickness, Hair, 1.0)));
+    geo.objects.push_back(std::unique_ptr<Object>(new Sphere(curr_point, thickness, Hair, 1.0, Color(color_r, color_g, color_b))));
     if (num_vertices_read_in_current_strand != 0) {
-      geo.objects.push_back(std::unique_ptr<Object>(new Cylinder(prev_point, (curr_point - prev_point).normalize(), (prev_point - curr_point).length(), thickness, Hair, 1.0))); // TODO verify material and eta
-      Logger::info(prev_point.toString());
-      Logger::info((curr_point - prev_point).toString());
+      geo.objects.push_back(std::unique_ptr<Object>(new Cylinder(prev_point, (curr_point - prev_point).normalize(), (prev_point - curr_point).length(), thickness, Hair, 1.0, Color(color_r, color_g, color_b)))); // TODO verify material and eta
       len_avg += (prev_point - curr_point).length();
       if ((prev_point - curr_point).length() > max_len) {
         max_len = (prev_point - curr_point).length();
@@ -219,11 +219,11 @@ Geometry ParseHair(const std::string path) {
 
 
 
-//  if (num_total_vertices_read != num_vertices) {
-//    THROW_EXCEPTION(std::string("Mismatch in num of vertices! In header: ") +
-//        std::to_string(num_vertices) + std::string("; Actual: ") +
-//        std::to_string(num_total_vertices_read));
-//  }
+  if (num_total_vertices_read != num_vertices) {
+    THROW_EXCEPTION(std::string("Mismatch in num of vertices! In header: ") +
+        std::to_string(num_vertices) + std::string("; Actual: ") +
+        std::to_string(num_total_vertices_read));
+  }
 
 
 

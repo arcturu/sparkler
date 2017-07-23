@@ -10,7 +10,7 @@ class Store {
   std::vector<T> ns;
 
   Store() {
-    ns.reserve(10);
+    ns.reserve(100);
   }
   void push(T n) {
     ns.push_back(n);
