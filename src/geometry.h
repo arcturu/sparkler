@@ -26,6 +26,7 @@ class Intersection {
   double t;
   Vector3d p;
   Vector3d n;
+  Vector3d tan;
   Material material;
   double eta;
   Color color;
@@ -84,9 +85,10 @@ class Triangle : public Object {
 
 class Sphere : public Object {
   Vector3d c;
+  Vector3d up;
   double r;
  public:
-  Sphere(Vector3d c, double r, Material m, double e, Color col) : c(c), r(r) {
+  Sphere(Vector3d c, Vector3d u, double r, Material m, double e, Color col) : c(c), up(u), r(r) {
     material = m;
     eta = e;
     color = col;

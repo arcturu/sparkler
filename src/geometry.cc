@@ -233,6 +233,7 @@ Intersection Sphere::intersect(const Ray& ray) {
       it.t = t[i];
       it.p = ray.src + t[i] * ray.dir;
       it.n = (it.p - c).normalize();
+      it.tan = (up - it.n.dot(up) * it.n).normalize();
       it.material = material;
       it.eta = eta;
       it.color = color;
@@ -296,6 +297,7 @@ Intersection Cylinder::intersect(const Ray& ray) {
       it.t = t[i];
       it.p = ray.src + t[i] * ray.dir;
       it.n = (it.p - (src + dir.dot(ray.src + t[i] * ray.dir - src) * dir)).normalize();
+      it.tan = dir; // TODO FIXME -dir?
       it.material = material;
       it.eta = eta;
       it.color = color;

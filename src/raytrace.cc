@@ -98,6 +98,10 @@ Pixel<uint8_t> saturate(Pixel<double> pix, uint8_t limit) {
   return pix2;
 }
 
+Color gammaCorrection(const Color& color, double gamma) {
+  return Color(pow(color.r, gamma), pow(color.g, gamma), pow(color.b, gamma));
+}
+
 Intersection getShadowIntersection(Scene& scene, Ray shadow_ray, double maxdist) {
   const double SHADOW_EPS = 1e-10;
   Vector3d p = shadow_ray.src;
@@ -125,6 +129,28 @@ Color getImageLighting(Scene& scene, const Ray& ray) {
   return 255 * scene.camera.bgImage().m[y][x];
 }
 
+double max(double a, double b) {
+  return (a > b) ? a : b;
+}
+
+Color getIrradianceSingle(Scene& scene, const Light& l, const Intersection& it) {
+  Color pix;
+  Ray shadow_ray;
+  shadow_ray.src = it.p;
+  shadow_ray.dir = l.p - it.p;
+  Intersection shadowIt = getShadowIntersection(scene, shadow_ray, shadow_ray.dir.length());
+  if (shadowIt.hit) {
+    pix.r = 0; pix.g = 0; pix.b = 0;
+  } else {
+    double dist = (l.p - it.p).length();
+    Vector3d lv = (l.p - it.p).normalize();
+    pix.r += l.color.r * max(it.n.dot(lv), 0) / 4.0 / M_PI / dist / dist * l.luminance;
+    pix.g += l.color.g * max(it.n.dot(lv), 0) / 4.0 / M_PI / dist / dist * l.luminance;
+    pix.b += l.color.b * max(it.n.dot(lv), 0) / 4.0 / M_PI / dist / dist * l.luminance;
+  }
+  return pix;
+}
+
 Color getIrradiance(Scene& scene, const Intersection& it) {
   Color pix;
   for (const auto& l : scene.lights) {
@@ -136,9 +162,10 @@ Color getIrradiance(Scene& scene, const Intersection& it) {
       pix.r = 0; pix.g = 0; pix.b = 0;
     } else {
       double dist = (l.p - it.p).length();
-      pix.r += l.color.r * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6;
-      pix.g += l.color.g * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6;
-      pix.b += l.color.b * it.n.dot(l.p - it.p) / 4.0 / M_PI / dist / dist * l.luminance * 6;
+      Vector3d lv = (l.p - it.p).normalize();
+      pix.r += l.color.r * max(it.n.dot(lv), 0) / 4.0 / M_PI / dist / dist * l.luminance;
+      pix.g += l.color.g * max(it.n.dot(lv), 0) / 4.0 / M_PI / dist / dist * l.luminance;
+      pix.b += l.color.b * max(it.n.dot(lv), 0) / 4.0 / M_PI / dist / dist * l.luminance;
     }
   }
   // image based lighting
@@ -173,12 +200,38 @@ Color getGlossy(Scene& scene, const Intersection& it, const Ray& ray) {
     }
     Vector3d h = shadow_ray.dir.normalize() - ray.dir.normalize();
     double g = 40;
-    double glossy = fmax(0, pow(it.n.dot(h.normalize()), g)) * 255 * 50;
+    double glossy = fmax(0, pow(it.n.dot(h.normalize()), g)) * 50;
     pix.r += glossy;
     pix.g += glossy;
     pix.b += glossy;
   }
   return pix;
+}
+
+Color getKajiyaKayDiffuse(Scene& scene, const Intersection& it, const Ray& ray) {
+  Color d_total;
+  for (const auto& light : scene.lights) {
+    double d = 1 - pow(it.tan.dot((light.p - it.p).normalize()), 2);
+    if (d > 0) {
+      d_total = d_total + sqrt(d) * getIrradianceSingle(scene, light, it);
+    }
+  }
+  return d_total;
+}
+
+Color getKajiyaKaySpecular(Scene& scene, const Intersection& it, const Ray& ray, double r) {
+  Color s_total;
+  for (const auto& light : scene.lights) {
+    double cos_tl = it.tan.dot((light.p - it.p).normalize());
+    double cos_tv = it.tan.dot(-ray.dir);
+    double sin_tl = (cos_tl * cos_tl < 1) ? sqrt(1 - cos_tl * cos_tl) : 0;
+    double sin_tv = (cos_tv * cos_tv < 1) ? sqrt(1 - cos_tv * cos_tv) : 0;
+    double s = sin_tl * sin_tv - cos_tl * cos_tv;
+    if (s > 0) {
+      s_total = s_total + pow(s, r) * getIrradianceSingle(scene, light, it);
+    }
+  }
+  return s_total;
 }
 
 // TODO: support other types of lights
@@ -193,9 +246,9 @@ Color shade(Scene& scene, const Ray& ray, const Intersection& it, unsigned int t
     if (scene.camera.bgImage().height() > 0) {
       return getImageLighting(scene, ray);
     } else {
-      pix.r = scene.camera.bgColor().r * 255;
-      pix.g = scene.camera.bgColor().g * 255;
-      pix.b = scene.camera.bgColor().b * 255;
+      pix.r = scene.camera.bgColor().r;
+      pix.g = scene.camera.bgColor().g;
+      pix.b = scene.camera.bgColor().b;
     }
     return pix;
   }
@@ -247,11 +300,15 @@ Color shade(Scene& scene, const Ray& ray, const Intersection& it, unsigned int t
   } else if (it.material == Glossy) {
     pix = getIrradiance(scene, it) + getGlossy(scene, it, ray);
   } else if (it.material == Hair) {
-    pix = getIrradiance(scene, it) * it.color; // TODO impl here
+    Color diffuse = getKajiyaKayDiffuse(scene, it, ray);
+    Color specular = getKajiyaKaySpecular(scene, it, ray, 80);
+//    printf("%f %f\n", diffuse.r, specular.r);
+    pix = (diffuse + specular) * it.color;
   } else {
     Logger::error(std::string("Unknown material: ") + std::to_string(it.material));
   }
 
+//  printf("%f %f %f\n", pix.r, pix.g, pix.b);
   return pix;
 }
 
@@ -288,9 +345,9 @@ Image<uint8_t> raytrace(Scene& scene) {
 
         Intersection it = scene.intersect(ray);
         Color tmp_pix = shade(scene, ray, it, 100);
-        pix.r += tmp_pix.r / N;
-        pix.g += tmp_pix.g / N;
-        pix.b += tmp_pix.b / N;
+        pix.r += tmp_pix.r / N * 255;
+        pix.g += tmp_pix.g / N * 255;
+        pix.b += tmp_pix.b / N * 255;
       }
       img.m[y][x] = saturate(toneMap(pix), 255);
     }

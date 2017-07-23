@@ -187,7 +187,7 @@ Geometry ParseHair(const std::string path) {
   double num_cylinders = 0;
   double max_len = 0;
 
-//  num_vertices = 10000; // FIXME for debug
+  num_vertices = 1000; // FIXME for debug
 
   while (file && num_total_vertices_read < num_vertices) {
     float x, y, z;
@@ -196,14 +196,18 @@ Geometry ParseHair(const std::string path) {
     file.read((char *)&z, 4);
 
     Vector3d curr_point(x, y, z);
-    geo.objects.push_back(std::unique_ptr<Object>(new Sphere(curr_point, thickness, Hair, 1.0, Color(color_r, color_g, color_b))));
     if (num_vertices_read_in_current_strand != 0) {
-      geo.objects.push_back(std::unique_ptr<Object>(new Cylinder(prev_point, (curr_point - prev_point).normalize(), (prev_point - curr_point).length(), thickness, Hair, 1.0, Color(color_r, color_g, color_b)))); // TODO verify material and eta
+      Vector3d dir_unnormal = curr_point - prev_point;
+      geo.objects.push_back(std::unique_ptr<Object>(new Sphere(curr_point, dir_unnormal.normalize(), thickness, Hair, 1.0, Color(color_r, color_g, color_b))));
+      geo.objects.push_back(std::unique_ptr<Object>(new Cylinder(prev_point, dir_unnormal.normalize(), dir_unnormal.length(), thickness, Hair, 1.0, Color(color_r, color_g, color_b)))); // TODO verify material and eta
       len_avg += (prev_point - curr_point).length();
       if ((prev_point - curr_point).length() > max_len) {
         max_len = (prev_point - curr_point).length();
       }
       num_cylinders += 1;
+    } else {
+      Vector3d default_up(0, 0, 1); // FIXME
+      geo.objects.push_back(std::unique_ptr<Object>(new Sphere(curr_point, default_up.normalize(), thickness, Hair, 1.0, Color(color_r, color_g, color_b))));
     }
     prev_point = curr_point;
     num_total_vertices_read++;
@@ -219,17 +223,17 @@ Geometry ParseHair(const std::string path) {
 
 
 
-  if (num_total_vertices_read != num_vertices) {
-    THROW_EXCEPTION(std::string("Mismatch in num of vertices! In header: ") +
-        std::to_string(num_vertices) + std::string("; Actual: ") +
-        std::to_string(num_total_vertices_read));
-  }
+//  if (num_total_vertices_read != num_vertices) {
+//    THROW_EXCEPTION(std::string("Mismatch in num of vertices! In header: ") +
+//        std::to_string(num_vertices) + std::string("; Actual: ") +
+//        std::to_string(num_total_vertices_read));
+//  }
 
 
 
 
-//  geo.objects.push_back(std::unique_ptr<Object>(new Sphere(Vector3d(0, 0, 0), 5, Diffuse, 1.0)));
-//  geo.objects.push_back(std::unique_ptr<Object>(new Cylinder(Vector3d(0, 0, 0), Vector3d(-0.3, 1, 0), 10, 5, Diffuse, 1.0))); // TODO verify material and eta
+//  geo.objects.push_back(std::unique_ptr<Object>(new Sphere(Vector3d(0, 0, 0), Vector3d(0, 0, 1), 50, Hair, 1.0, Color(1.0, 0.3, 0.3))));
+//  geo.objects.push_back(std::unique_ptr<Object>(new Cylinder(Vector3d(0, 0, -100), Vector3d(0, 0, 1), 1000, 25, Diffuse, 1.0, Color(1.0, 0.3, 0.3)))); // TODO verify material and eta
 
   return geo;
 }
