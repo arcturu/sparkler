@@ -187,7 +187,7 @@ Geometry ParseHair(const std::string path) {
   double num_cylinders = 0;
   double max_len = 0;
 
-  num_vertices = 1000; // FIXME for debug
+  num_vertices = 10000; // FIXME for debug
 
   while (file && num_total_vertices_read < num_vertices) {
     float x, y, z;

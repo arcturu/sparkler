@@ -241,6 +241,7 @@ class CyclicAngle {
  private:
   double r; // in radian
  public:
+  CyclicAngle() : r(0) {}
   CyclicAngle(double r) : r(r) {} // arg must be in radian
   static double normalize(double rad);
   double getRadian() const { return normalize(r); }
@@ -306,6 +307,12 @@ double dpdh(int p, double r_i, double eta_s) {
   return (6 * p * c / M_PI - 2) - 3 * 8 * p * c / pow(M_PI, 3) * r_i * r_i / sqrt(1 - h * h);
 }
 
+double d2pdh2(int p, double r_i, double eta_s) {
+  double c = asin(1 / eta_s);
+  return (-6 * 8 * p * c * r_i / pow(M_PI, 3) / cos(r_i)
+      - (6 * p * c / M_PI - 2 - 3 * 8 * p * c / pow(M_PI, 3) * pow(r_i, 2)) / sin(r_i)) / cos(r_i);
+}
+
 // ax^3 + bx^2 + cx + d = 0
 // a > 0
 std::vector<std::complex<double>> solveCubic(double a, double b, double c, double d) {
@@ -326,21 +333,31 @@ std::vector<std::complex<double>> solveCubic(double a, double b, double c, doubl
   return res;
 }
 
+double smoothStep(double a, double b, double x) {
+  if (x <= a) {
+    return 0;
+  } else if (b <= x) {
+    return 1.0;
+  } else {
+    return x / (b - a);
+  }
+}
+
 double getMarschnerScatter(const Light& light, const Ray& ray, const Intersection& it) {
   // TODO make configurable
   const double eta           = 1.55;
   const double sigma_a       = 0.3;
-//  const double a             = 0.88;
+  const double a             = 0.95;
   const double alpha_r       = -7.5 * 180 / M_PI;
   const double alpha_tt      = -alpha_r / 2;
   const double alpha_trt     = -alpha_r * 3 / 2;
   const double beta_r        = 10 * 180 / M_PI;
   const double beta_tt       = beta_r / 2;
   const double beta_trt      = 2 * beta_r;
-//  const double k_g           = 3;
-//  const double w_c           = 15 * 180 / M_PI;
-//  const double del_eta_prime = 0.3;
-//  const double del_h_m       = 0.5;
+  const double k_g           = 3;
+  const double w_c           = 15 * 180 / M_PI;
+  const double del_eta_prime = 0.3;
+  const double del_h_m       = 0.5;
 
 
   Vector3d u = it.tan.normalize();
@@ -358,12 +375,13 @@ double getMarschnerScatter(const Light& light, const Ray& ray, const Intersectio
   CyclicAngle phi_i((l_vw.dot(w) > 0) ? acos(l_vw.dot(v)) : -acos(l_vw.dot(v)));
   CyclicAngle phi_r((e_vw.dot(w) > 0) ? acos(e_vw.dot(v)) : -acos(e_vw.dot(v)));
   CyclicAngle phi = phi_r - phi_i;
-//  CyclicAngle phi_h = (phi_i + phi_r) / 2.0;
+  CyclicAngle phi_h = (phi_i + phi_r) / 2.0;
 
   double tmp = sqrt(pow(eta, 2.0) - pow(sin(theta_d), 2.0));
   double eta_s = tmp / cos(theta_d);
   double eta_p = pow(eta, 2.0) * cos(theta_d) / tmp;
 
+  const double EPS = 10e-5;
   double n_r, n_tt, n_trt;
   {
     // calculate n_r
@@ -378,7 +396,6 @@ double getMarschnerScatter(const Light& light, const Ray& ray, const Intersectio
 //    printf("---\n");
     int real_count = 0;
     double r_i_real = 0;
-    const double EPS = 10e-5;
     for (const auto& r_i : r_is) {
 //      printf("%f %f\n", r_i.real(), r_i.imag());
       if (std::abs(r_i.imag()) < EPS) {
@@ -397,12 +414,45 @@ double getMarschnerScatter(const Light& light, const Ray& ray, const Intersectio
   }
   {
     // calculate n_trt
+    double eta_star1 = 2.0 * (eta - 1) * pow(a, 2.0) - eta + 2.0;
+    double eta_star2 = 2.0 * (eta - 1) * pow(a, -2.0) - eta + 2.0;
+    double eta_star = (eta_star1 + eta_star2 + cos(2.0 * phi_h.getRadian()) * (eta_star1 - eta_star2)) / 2.0;
+    double tmp = sqrt(pow(eta_star, 2.0) - pow(sin(theta_d), 2.0));
+    double eta_s_star = tmp / cos(theta_d);
+    double eta_p_star = pow(eta_star, 2.0) * cos(theta_d) / tmp;
+
+    CyclicAngle phi_c(0);
+    double del_h = del_h_m;
+    double t = smoothStep(2.0, 2.0 + del_eta_prime, eta_s_star);
+    if (eta_s_star < 2) {
+      double h_c = sqrt((4.0 - pow(eta_s_star, 2.0)) / 3.0);
+      double r_i = asin(h_c);
+      double r_t = asin(h_c / eta_s_star);
+      phi_c = CyclicAngle(4.0 * r_t - 2.0 * r_i + 2.0 * M_PI);
+      del_h = std::min(del_h_m, 2.0 * sqrt(2.0 * w_c * abs(d2pdh2(2, r_i, eta_s_star))));
+      t = 1.0;
+    }
+    double c = asin(1.0 / eta_s_star);
+    std::vector<std::complex<double>> r_is = solveCubic(-8.0 * 2.0 * c / pow(M_PI, 3.0), 0, 6.0 * 2.0 * c / M_PI, 2.0 * M_PI);
     n_trt = 0;
+    for (const auto& r_i : r_is) {
+      if (r_i.imag() < EPS) {
+//      printf("%f %f\n", r_i.real(), r_i.imag());
+        double r_t = asin(sin(r_i.real()) / eta_s_star);
+        n_trt += pow(1.0 - fresnel(eta_star, eta_s_star, eta_p_star, r_i.real()), 2.0)
+          * fresnel(eta_star, 1.0 / eta_s_star, 1.0 / eta_p_star, r_t)
+          * pow(exp(-2.0 * sigma_a * (1.0 + cos(2 * r_t))), 2.0)
+          / abs(2 * dpdh(2, sin(r_i.real()), eta_s_star));
+      }
+    }
+//    n_trt *= (1.0 - t * gaussian(w_c, (phi - phi_c).getRadian())) / gaussian(w_c, 0);
+//    n_trt *= (1.0 - t * gaussian(w_c, (phi + phi_c).getRadian())) / gaussian(w_c, 0);
+//    n_trt += t * k_g * 
   }
   double scatter = (gaussian(beta_r, theta_h - alpha_r) * n_r
     + gaussian(beta_tt, theta_h - alpha_tt) * n_tt
     + gaussian(beta_trt, theta_h - alpha_trt) * n_trt) / pow(cos(theta_d), 2.0);
-//  printf("%f %f %f %f\n", n_r, n_tt, cos(theta_d), scatter);
+//  printf("%f %f %f %f %f\n", n_r, n_tt, n_trt, cos(theta_d), scatter);
   return scatter;
 }
 
@@ -473,14 +523,22 @@ Color shade(Scene& scene, const Ray& ray, const Intersection& it, unsigned int t
   } else if (it.material == Glossy) {
     pix = getIrradiance(scene, it) + getGlossy(scene, ray, it);
   } else if (it.material == Hair) {
-//    pix = KajiyaKay(scene, ray, it, 80);
-    pix = Color();
-    for (const auto& light : scene.lights) {
-      Color tmp = getMarschnerScatter(light, ray, it) * getIrradianceSingle(scene, light, it) * it.color;
-      printf("%f %f %f\n", tmp.r, tmp.g, tmp.b);
-      // TODO super ad-hoc constant is used
-      pix = pix + 7 * tmp;
+//    {
+//      pix = KajiyaKay(scene, ray, it, 80);
+//    }
+    {
+      pix = Color();
+      for (const auto& light : scene.lights) {
+        Color tmp = getMarschnerScatter(light, ray, it) * getIrradianceSingle(scene, light, it) * it.color;
+  //      printf("%f %f %f\n", tmp.r, tmp.g, tmp.b);
+        // TODO super ad-hoc constant is used
+        pix = pix + 12 * tmp;
+      }
     }
+//    {
+//      double k_d = M_PI;
+//      pix = k_d / M_PI * getIrradiance(scene, it) * it.color;
+//    }
   } else {
     Logger::error(std::string("Unknown material: ") + std::to_string(it.material));
   }
