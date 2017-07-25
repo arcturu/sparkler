@@ -316,19 +316,20 @@ double d2pdh2(int p, double r_i, double eta_s) {
 // ax^3 + bx^2 + cx + d = 0
 // a > 0
 std::vector<std::complex<double>> solveCubic(double a, double b, double c, double d) {
+//  printf("%f %f %f %f\n", a, b, c, d);
   std::vector<std::complex<double>> res;
   std::complex<double> w(-0.5, sqrt(3.0) / 2.0);
   b /= a;
   c /= a;
   d /= a;
 
-  std::complex<double> p(c - b * b / 3.0);
-  std::complex<double> q(d - b * c / 3.0 + 2.0 * pow(b, 3) / 27.0);
+  std::complex<double> p(c - b * b / 3.0, 0);
+  std::complex<double> q(d - b * c / 3.0 + 2.0 * pow(b, 3) / 27.0, 0);
   std::complex<double> s = std::sqrt(std::pow(q / 2.0, 2.0) + std::pow(p / 3.0, 3.0));
   for (int i = 0; i < 3; i++) {
-    res.push_back(std::pow(w, i) * std::pow(-q / 2.0 + s, 1.0 / 3.0)
-        + std::pow(w, 3.0 - i) * std::pow(-q / 2.0 - s, 1.0 / 3.0)
-        - b / 3.0);
+    std::complex<double> u = std::pow(-q / 2.0 + s, 1.0 / 3.0) * std::pow(w, i);
+    std::complex<double> v = -p / (3.0 * u);
+    res.push_back(u + v - b / 3.0);
   }
   return res;
 }
@@ -392,7 +393,7 @@ double getMarschnerScatter(const Light& light, const Ray& ray, const Intersectio
     // calculate n_tt
     double c = asin(1.0 / eta_s);
 //    std::vector<std::complex<double>> r_is = solveCubic(1, -2, -11, 12);
-    std::vector<std::complex<double>> r_is = solveCubic(-8.0 * c / pow(M_PI, 3.0), 0, 6.0 * c / M_PI, M_PI);
+    std::vector<std::complex<double>> r_is = solveCubic(-8.0 * c / pow(M_PI, 3.0), 0, 6.0 * c / M_PI - 2.0, M_PI - phi.getRadian());
 //    printf("---\n");
     int real_count = 0;
     double r_i_real = 0;
@@ -433,7 +434,7 @@ double getMarschnerScatter(const Light& light, const Ray& ray, const Intersectio
       t = 1.0;
     }
     double c = asin(1.0 / eta_s_star);
-    std::vector<std::complex<double>> r_is = solveCubic(-8.0 * 2.0 * c / pow(M_PI, 3.0), 0, 6.0 * 2.0 * c / M_PI, 2.0 * M_PI);
+    std::vector<std::complex<double>> r_is = solveCubic(-8.0 * 2.0 * c / pow(M_PI, 3.0), 0, 6.0 * 2.0 * c / M_PI - 2.0, 2.0 * M_PI - phi.getRadian());
     n_trt = 0;
     for (const auto& r_i : r_is) {
       if (r_i.imag() < EPS) {
@@ -443,6 +444,7 @@ double getMarschnerScatter(const Light& light, const Ray& ray, const Intersectio
           * fresnel(eta_star, 1.0 / eta_s_star, 1.0 / eta_p_star, r_t)
           * pow(exp(-2.0 * sigma_a * (1.0 + cos(2 * r_t))), 2.0)
           / abs(2 * dpdh(2, sin(r_i.real()), eta_s_star));
+//        printf("%f %f %f %f %f %f\n", eta_star, eta_s_star, eta_p_star, r_i.real(), r_t, n_trt);
       }
     }
 //    n_trt *= (1.0 - t * gaussian(w_c, (phi - phi_c).getRadian())) / gaussian(w_c, 0);
@@ -567,7 +569,7 @@ Image<uint8_t> raytrace(Scene& scene) {
   Image<uint8_t> img(scene.camera.film.xpixels(), scene.camera.film.ypixels());
 
 #ifdef _OPENMP
-#pragma omp parallel for
+//#pragma omp parallel for
 #endif
   for (int y = 0; y < img.height(); y++) {
     printf("%d\n", y);
