@@ -430,21 +430,22 @@ double getMarschnerScatter(const Light& light, const Ray& ray, const Intersectio
       double r_i = asin(h_c);
       double r_t = asin(h_c / eta_s_star);
       phi_c = CyclicAngle(4.0 * r_t - 2.0 * r_i + 2.0 * M_PI);
-      del_h = std::min(del_h_m, 2.0 * sqrt(2.0 * w_c * abs(d2pdh2(2, r_i, eta_s_star))));
+      del_h = std::min(del_h_m, 2.0 * sqrt(2.0 * w_c * std::abs(d2pdh2(2, r_i, eta_s_star))));
       t = 1.0;
     }
     double c = asin(1.0 / eta_s_star);
     std::vector<std::complex<double>> r_is = solveCubic(-8.0 * 2.0 * c / pow(M_PI, 3.0), 0, 6.0 * 2.0 * c / M_PI - 2.0, 2.0 * M_PI - phi.getRadian());
     n_trt = 0;
     for (const auto& r_i : r_is) {
-      if (r_i.imag() < EPS) {
+      if (std::abs(r_i.imag()) < EPS) {
 //      printf("%f %f\n", r_i.real(), r_i.imag());
         double r_t = asin(sin(r_i.real()) / eta_s_star);
         n_trt += pow(1.0 - fresnel(eta_star, eta_s_star, eta_p_star, r_i.real()), 2.0)
           * fresnel(eta_star, 1.0 / eta_s_star, 1.0 / eta_p_star, r_t)
           * pow(exp(-2.0 * sigma_a * (1.0 + cos(2 * r_t))), 2.0)
-          / abs(2 * dpdh(2, sin(r_i.real()), eta_s_star));
+          / std::abs(2 * dpdh(2, sin(r_i.real()), eta_s_star));
 //        printf("%f %f %f %f %f %f\n", eta_star, eta_s_star, eta_p_star, r_i.real(), r_t, n_trt);
+//        printf("%f %f %f %f\n", pow(1.0 - fresnel(eta_star, eta_s_star, eta_p_star, r_i.real()), 2.0), fresnel(eta_star, 1.0 / eta_s_star, 1.0 / eta_p_star, r_t), pow(exp(-2.0 * sigma_a * (1.0 + cos(2 * r_t))), 2.0), abs(2 * dpdh(2, sin(r_i.real()), eta_s_star)));
       }
     }
 //    n_trt *= (1.0 - t * gaussian(w_c, (phi - phi_c).getRadian())) / gaussian(w_c, 0);
@@ -534,7 +535,7 @@ Color shade(Scene& scene, const Ray& ray, const Intersection& it, unsigned int t
         Color tmp = getMarschnerScatter(light, ray, it) * getIrradianceSingle(scene, light, it) * it.color;
   //      printf("%f %f %f\n", tmp.r, tmp.g, tmp.b);
         // TODO super ad-hoc constant is used
-        pix = pix + 12 * tmp;
+        pix = pix + tmp;
       }
     }
 //    {
@@ -569,7 +570,7 @@ Image<uint8_t> raytrace(Scene& scene) {
   Image<uint8_t> img(scene.camera.film.xpixels(), scene.camera.film.ypixels());
 
 #ifdef _OPENMP
-//#pragma omp parallel for
+#pragma omp parallel for
 #endif
   for (int y = 0; y < img.height(); y++) {
     printf("%d\n", y);
