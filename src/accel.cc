@@ -1,6 +1,7 @@
 #include <cmath>
 #include <memory>
 #include <limits>
+#include <queue>
 #include "accel.h"
 #include "constant.h"
 #include "exception.h"
@@ -184,6 +185,7 @@ Intersection AccelNode::traverseLoop(const Ray& ray) {
 }
 
 Intersection AccelNode::traverse(const Ray& ray, double min_t) {
+  stat_num_traverse++;
   Intersection it;
   if (children.size() == 0) { // it's a leef
     for (auto f = faces.begin(); f != faces.end(); ++f) {
@@ -286,6 +288,40 @@ std::unique_ptr<BvhNode> constructBvh(std::vector<std::unique_ptr<Object>> objec
   return n;
 }
 
+Intersection BvhNode::traverse(const Ray& ray, double min_t) {
+  stat_num_traverse++;
+  Intersection it;
+  if (children.size() == 0) { // it's a leef
+    for (const auto& obj: objects) {
+      Intersection tmp_it = obj->intersect(ray);
+      if (tmp_it.hit && tmp_it.t < min_t) {
+        min_t = tmp_it.t;
+        it = tmp_it;
+      }
+    }
+  } else {
+    double t;
+    for (const auto& c : children) {
+      bool hit = intersectBox(c->m, c->p, ray, &t);
+      if (hit && t < min_t) {
+        Intersection tmp_it = c->traverse(ray, min_t);
+        if (tmp_it.hit && tmp_it.t < min_t) {
+          min_t = tmp_it.t;
+          it = tmp_it;
+        }
+      }
+    }
+  }
+
+  return it;
+}
+
+class CompareDistance {
+ public:
+  bool operator()(std::pair<double, int> lhs, std::pair<double, int> rhs) {
+    return lhs.first > rhs.first; // ascending order
+  }
+};
 
 Intersection BvhNode::traverseLoop(const Ray& ray) {
   Store<BvhNode *> ns;
@@ -307,12 +343,27 @@ Intersection BvhNode::traverseLoop(const Ray& ray) {
         }
       }
     } else {
-      for (int i = 0; i < n->children.size(); i++) {
-        bool hit = intersectBox(n->children[i]->m, n->children[i]->p, ray, &t);
+      for (const auto& c : n->children) {
+        bool hit = intersectBox(c->m, c->p, ray, &t);
         if (hit && t < it.t) {
-          ns.push(n->children[i].get());
+          ns.push(c.get());
         }
       }
+//      std::priority_queue<std::pair<double, int>, std::vector<std::pair<double, int>>, CompareDistance> queue;
+//      for (int i = 0; i < n->children.size(); i++) {
+//        intersectBox(n->children[i]->m, n->children[i]->p, ray, &t);
+//        queue.push(std::make_pair(t, i));
+//      }
+////      printf("---\n");
+//      int cc = 0;
+//      while (!queue.empty()) {
+//        std::pair<double, int> t = queue.top(); queue.pop();
+////        printf("%f %d\n", t.first, t.second);
+//        if (t.first < std::numeric_limits<double>::infinity() && t.first < it.t) {
+//          cc++;
+//          ns.push(n->children[t.second].get());
+//        }
+//      }
     }
     if (stat_max_num_ns < ns.size()) {
       stat_max_num_ns = ns.size();

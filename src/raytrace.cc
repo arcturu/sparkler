@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cmath>
 #include <random>
+#include <complex>
 #include "raytrace.h"
 #include "image.h"
 #include "geometry.h"
@@ -188,7 +189,7 @@ Color getIrradiance(Scene& scene, const Intersection& it) {
   return pix;
 }
 
-Color getGlossy(Scene& scene, const Intersection& it, const Ray& ray) {
+Color getGlossy(Scene& scene, const Ray& ray, const Intersection& it) {
   Color pix;
   for (const auto& l : scene.lights) {
     Ray shadow_ray;
@@ -206,6 +207,203 @@ Color getGlossy(Scene& scene, const Intersection& it, const Ray& ray) {
     pix.b += glossy;
   }
   return pix;
+}
+
+Color KajiyaKay(Scene& scene, const Ray& ray, const Intersection& it, double r) {
+  Color diffuse;
+  Color specular;
+
+  // Kajiya-Kay Model
+  for (const auto& light : scene.lights) {
+    Color irr = getIrradianceSingle(scene, light, it);
+    // Diffuse
+    double d = 1 - pow(it.tan.dot((light.p - it.p).normalize()), 2);
+    if (d > 0) {
+      diffuse = diffuse + sqrt(d) * irr;
+    }
+
+    // Specular
+    double cos_tl = it.tan.dot((light.p - it.p).normalize());
+    double cos_tv = it.tan.dot(-ray.dir);
+    double sin_tl = (cos_tl * cos_tl < 1) ? sqrt(1 - cos_tl * cos_tl) : 0;
+    double sin_tv = (cos_tv * cos_tv < 1) ? sqrt(1 - cos_tv * cos_tv) : 0;
+    double s = sin_tl * sin_tv - cos_tl * cos_tv;
+    if (s > 0) {
+      specular = specular + pow(s, r) * irr;
+    }
+  }
+
+//    printf("%f %f\n", diffuse.r, specular.r);
+  return (diffuse + specular) * it.color;
+}
+
+class CyclicAngle {
+ private:
+  double r; // in radian
+ public:
+  CyclicAngle(double r) : r(r) {} // arg must be in radian
+  static double normalize(double rad);
+  double getRadian() const { return normalize(r); }
+  double getDegree() const { return normalize(r) * 180 / M_PI; }
+};
+
+// valid range: [0, 2pi)
+double CyclicAngle::normalize(double rad) {
+  if (rad < 0) {
+    double normalized = rad + 2 * M_PI;
+    if (normalized >= 2 * M_PI) { // for safety (could be removed)
+      return 0;
+    } else {
+      return CyclicAngle::normalize(rad + 2 * M_PI);
+    }
+  } else if (rad >= 2 * M_PI) {
+    double normalized = rad - 2 * M_PI;
+    if (normalized < 0) { // for safety (could be removed)
+      return 0;
+    } else {
+      return CyclicAngle::normalize(normalized);
+    }
+  } else {
+    return rad;
+  }
+}
+
+CyclicAngle operator-(const CyclicAngle a) {
+  return CyclicAngle(-a.getRadian());
+}
+
+CyclicAngle operator+(const CyclicAngle lhs, const CyclicAngle rhs) {
+  return CyclicAngle(lhs.getRadian() + rhs.getRadian());
+}
+
+CyclicAngle operator-(const CyclicAngle lhs, const CyclicAngle rhs) {
+  return CyclicAngle(lhs.getRadian() - rhs.getRadian());
+}
+
+CyclicAngle operator*(double c, const CyclicAngle a) {
+  return CyclicAngle(c * a.getRadian());
+}
+
+CyclicAngle operator/(const CyclicAngle a, double c) {
+  return CyclicAngle(a.getRadian() / c);
+}
+
+double gaussian(double s, double x) {
+  return exp(-x * x / (2 * s * s)) / sqrt(2 * M_PI * s * s);
+}
+
+double fresnel(double eta, double eta_s, double eta_p, double r_i) {
+  double r_t = asin(sin(r_i) / eta);
+
+  double fs = (cos(r_i) - eta_s * cos(r_t)) / (cos(r_i) + eta_s * cos(r_t));
+  double fp = (eta_p * cos(r_i) - cos(r_t)) / (eta_p * cos(r_i) + cos(r_t));
+  return (fs * fs + fp * fp) / 2;
+}
+
+double dpdh(int p, double r_i, double eta_s) {
+  double h = sin(r_i);
+  double c = asin(1 / eta_s);
+  return (6 * p * c / M_PI - 2) - 3 * 8 * p * c / pow(M_PI, 3) * r_i * r_i / sqrt(1 - h * h);
+}
+
+// ax^3 + bx^2 + cx + d = 0
+// a > 0
+std::vector<std::complex<double>> solveCubic(double a, double b, double c, double d) {
+  std::vector<std::complex<double>> res;
+  std::complex<double> w(-0.5, sqrt(3.0) / 2.0);
+  b /= a;
+  c /= a;
+  d /= a;
+
+  std::complex<double> p(c - b * b / 3.0);
+  std::complex<double> q(d - b * c / 3.0 + 2.0 * pow(b, 3) / 27.0);
+  std::complex<double> s = std::sqrt(std::pow(q / 2.0, 2.0) + std::pow(p / 3.0, 3.0));
+  for (int i = 0; i < 3; i++) {
+    res.push_back(std::pow(w, i) * std::pow(-q / 2.0 + s, 1.0 / 3.0)
+        + std::pow(w, 3.0 - i) * std::pow(-q / 2.0 - s, 1.0 / 3.0)
+        - b / 3.0);
+  }
+  return res;
+}
+
+double getMarschnerScatter(const Light& light, const Ray& ray, const Intersection& it) {
+  // TODO make configurable
+  const double eta           = 1.55;
+  const double sigma_a       = 0.3;
+//  const double a             = 0.88;
+  const double alpha_r       = -7.5 * 180 / M_PI;
+  const double alpha_tt      = -alpha_r / 2;
+  const double alpha_trt     = -alpha_r * 3 / 2;
+  const double beta_r        = 10 * 180 / M_PI;
+  const double beta_tt       = beta_r / 2;
+  const double beta_trt      = 2 * beta_r;
+//  const double k_g           = 3;
+//  const double w_c           = 15 * 180 / M_PI;
+//  const double del_eta_prime = 0.3;
+//  const double del_h_m       = 0.5;
+
+
+  Vector3d u = it.tan.normalize();
+  Vector3d w = it.n.normalize();
+  Vector3d v = -u.cross(w).normalize();
+
+  Vector3d l = (light.p - it.p).normalize();
+  Vector3d l_vw = (l - l.dot(u) * u).normalize();
+  Vector3d e = -ray.dir.normalize();
+  Vector3d e_vw = (e - e.dot(u) * u).normalize();
+  double theta_i = (M_PI / 2.0 - acos(l.dot(u)));
+  double theta_r = (M_PI / 2.0 - acos(e.dot(u)));
+  double theta_d = (theta_r - theta_i) / 2.0;
+  double theta_h = (theta_i + theta_r) / 2.0;
+  CyclicAngle phi_i((l_vw.dot(w) > 0) ? acos(l_vw.dot(v)) : -acos(l_vw.dot(v)));
+  CyclicAngle phi_r((e_vw.dot(w) > 0) ? acos(e_vw.dot(v)) : -acos(e_vw.dot(v)));
+  CyclicAngle phi = phi_r - phi_i;
+//  CyclicAngle phi_h = (phi_i + phi_r) / 2.0;
+
+  double tmp = sqrt(pow(eta, 2.0) - pow(sin(theta_d), 2.0));
+  double eta_s = tmp / cos(theta_d);
+  double eta_p = pow(eta, 2.0) * cos(theta_d) / tmp;
+
+  double n_r, n_tt, n_trt;
+  {
+    // calculate n_r
+    double r_i = -phi.getRadian() / 2.0;
+    n_r = fresnel(eta, eta_s, eta_p, r_i) / std::abs(2.0 * dpdh(0, r_i, eta_s));
+  }
+  {
+    // calculate n_tt
+    double c = asin(1.0 / eta_s);
+//    std::vector<std::complex<double>> r_is = solveCubic(1, -2, -11, 12);
+    std::vector<std::complex<double>> r_is = solveCubic(-8.0 * c / pow(M_PI, 3.0), 0, 6.0 * c / M_PI, M_PI);
+//    printf("---\n");
+    int real_count = 0;
+    double r_i_real = 0;
+    const double EPS = 10e-5;
+    for (const auto& r_i : r_is) {
+//      printf("%f %f\n", r_i.real(), r_i.imag());
+      if (std::abs(r_i.imag()) < EPS) {
+        r_i_real = r_i.real();
+        real_count++;
+      }
+    }
+    if (real_count > 1) {
+      Logger::warn("Too many real solutions!");
+//      THROW_EXCEPTION("Too many real solution!");
+    }
+    double r_t = asin(sin(r_i_real) / eta);
+    n_tt = pow(1.0 - fresnel(eta, eta_s, eta_p, r_i_real), 2.0)
+     * exp(-2.0 * sigma_a * (1.0 + cos(2 * r_t)))
+     / std::abs(2.0 * dpdh(0, r_i_real, eta_s));
+  }
+  {
+    // calculate n_trt
+    n_trt = 0;
+  }
+  double scatter = (gaussian(beta_r, theta_h - alpha_r) * n_r
+    + gaussian(beta_tt, theta_h - alpha_tt) * n_tt
+    + gaussian(beta_trt, theta_h - alpha_trt) * n_trt) / pow(cos(theta_d), 2.0);
+//  printf("%f %f %f %f\n", n_r, n_tt, cos(theta_d), scatter);
+  return scatter;
 }
 
 // TODO: support other types of lights
@@ -227,7 +425,8 @@ Color shade(Scene& scene, const Ray& ray, const Intersection& it, unsigned int t
     return pix;
   }
   if (it.material == Diffuse) {
-    pix = getIrradiance(scene, it) * it.color;
+    double k_d = 1.0;
+    pix = k_d / M_PI * getIrradiance(scene, it) * it.color;
   } else if (it.material == Mirror) {
     Ray reflected_ray;
     reflected_ray.src = it.p;
@@ -272,34 +471,16 @@ Color shade(Scene& scene, const Ray& ray, const Intersection& it, unsigned int t
       return shade(scene, refracted_ray, getShadowIntersection(scene, refracted_ray, 1e100), ttl-1);
     }
   } else if (it.material == Glossy) {
-    pix = getIrradiance(scene, it) + getGlossy(scene, it, ray);
+    pix = getIrradiance(scene, it) + getGlossy(scene, ray, it);
   } else if (it.material == Hair) {
-    double r = 80;
-    Color diffuse;
-    Color specular;
-
-    // Kajiya-Kay Model
+//    pix = KajiyaKay(scene, ray, it, 80);
+    pix = Color();
     for (const auto& light : scene.lights) {
-      Color irr = getIrradianceSingle(scene, light, it);
-      // Diffuse
-      double d = 1 - pow(it.tan.dot((light.p - it.p).normalize()), 2);
-      if (d > 0) {
-        diffuse = diffuse + sqrt(d) * irr;
-      }
-
-      // Specular
-      double cos_tl = it.tan.dot((light.p - it.p).normalize());
-      double cos_tv = it.tan.dot(-ray.dir);
-      double sin_tl = (cos_tl * cos_tl < 1) ? sqrt(1 - cos_tl * cos_tl) : 0;
-      double sin_tv = (cos_tv * cos_tv < 1) ? sqrt(1 - cos_tv * cos_tv) : 0;
-      double s = sin_tl * sin_tv - cos_tl * cos_tv;
-      if (s > 0) {
-        specular = specular + pow(s, r) * irr;
-      }
+      Color tmp = getMarschnerScatter(light, ray, it) * getIrradianceSingle(scene, light, it) * it.color;
+      printf("%f %f %f\n", tmp.r, tmp.g, tmp.b);
+      // TODO super ad-hoc constant is used
+      pix = pix + 7 * tmp;
     }
-
-//    printf("%f %f\n", diffuse.r, specular.r);
-    pix = (diffuse + specular) * it.color;
   } else {
     Logger::error(std::string("Unknown material: ") + std::to_string(it.material));
   }

@@ -151,13 +151,13 @@ Intersection Geometry::intersectNaive(const Ray& ray) const {
 
 
 Intersection Geometry::intersect(const Ray& ray) const {
-  Intersection it = root->traverseLoop(ray);
-  if (it.hit) {
-    it.material = material;
-    it.eta = eta;
-  }
+  Intersection it;// = root->traverseLoop(ray);
+//  if (it.hit) {
+//    it.material = material;
+//    it.eta = eta;
+//  }
 
-  Intersection it2 = obj_root->traverseLoop(ray);
+  Intersection it2 = obj_root->traverse(ray, std::numeric_limits<double>::infinity());
   if (it2.hit && (!it.hit || it2.t < it.t)) {
     it = it2;
   }
