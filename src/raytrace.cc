@@ -365,10 +365,10 @@ double getMarschnerScatter(const Light& light, const Ray& ray, const Intersectio
   const double beta_r        = 10 * 180 / M_PI;
   const double beta_tt       = beta_r / 2;
   const double beta_trt      = 2 * beta_r;
-  const double k_g           = 3;
-  const double w_c           = 15 * 180 / M_PI;
-  const double del_eta_prime = 0.3;
-  const double del_h_m       = 0.5;
+//  const double k_g           = 3;
+//  const double w_c           = 15 * 180 / M_PI;
+//  const double del_eta_prime = 0.3;
+//  const double del_h_m       = 0.5;
 
 
   Vector3d u = it.tan.normalize();
@@ -433,15 +433,15 @@ double getMarschnerScatter(const Light& light, const Ray& ray, const Intersectio
     double eta_p_star = pow(eta_star, 2.0) * cos(theta_d) / tmp;
 
     CyclicAngle phi_c(0);
-    double del_h = del_h_m;
-    double t = smoothStep(2.0, 2.0 + del_eta_prime, eta_s_star);
+//    double del_h = del_h_m;
+//    double t = smoothStep(2.0, 2.0 + del_eta_prime, eta_s_star);
     if (eta_s_star < 2) {
       double h_c = sqrt((4.0 - pow(eta_s_star, 2.0)) / 3.0);
       double r_i = asin(h_c);
       double r_t = asin(h_c / eta_s_star);
       phi_c = CyclicAngle(4.0 * r_t - 2.0 * r_i + 2.0 * M_PI);
-      del_h = std::min(del_h_m, 2.0 * sqrt(2.0 * w_c * std::abs(d2pdh2(2, r_i, eta_s_star))));
-      t = 1.0;
+//      del_h = std::min(del_h_m, 2.0 * sqrt(2.0 * w_c / std::abs(d2pdh2(2, r_i, eta_s_star))));
+//      t = 1.0;
     }
     double c = asin(1.0 / eta_s_star);
     std::vector<std::complex<double>> r_is = solveCubic(-8.0 * 2.0 * c / pow(M_PI, 3.0), 0, 6.0 * 2.0 * c / M_PI - 2.0, 2.0 * M_PI - phi.getRadian());
@@ -458,8 +458,9 @@ double getMarschnerScatter(const Light& light, const Ray& ray, const Intersectio
 //        printf("%f %f %f %f\n", pow(1.0 - fresnel(eta_star, eta_s_star, eta_p_star, r_i.real()), 2.0), fresnel(eta_star, 1.0 / eta_s_star, 1.0 / eta_p_star, r_t), pow(exp(-2.0 * sigma_a * (1.0 + cos(2 * r_t))), 2.0), abs(2 * dpdh(2, sin(r_i.real()), eta_s_star)));
       }
     }
-//    n_trt *= (1.0 - t * gaussian(w_c, (phi - phi_c).getRadian())) / gaussian(w_c, 0);
-//    n_trt *= (1.0 - t * gaussian(w_c, (phi + phi_c).getRadian())) / gaussian(w_c, 0);
+    // TODO?
+//    n_trt *= 1.0 - t * gaussian(w_c, (phi - phi_c).getRadian()) / gaussian(w_c, 0);
+//    n_trt *= 1.0 - t * gaussian(w_c, (phi + phi_c).getRadian()) / gaussian(w_c, 0);
 //    n_trt += t * k_g * 
   }
   double scatter = (gaussian(beta_r, theta_h - alpha_r) * n_r

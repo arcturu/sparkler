@@ -17,7 +17,7 @@ std::vector<std::string> split(std::string line, char delim) {
   std::vector<std::string> terms;
 
   int from = 0;
-  for (int i = 0; i < line.size(); ++i) {
+  for (size_t i = 0; i < line.size(); ++i) {
     if (line[i] == delim) {
       terms.push_back(line.substr(from, i - from));
       from = i + 1;
@@ -84,6 +84,10 @@ Geometry ParseObj(const std::string path) {
   return geo;
 }
 
+bool hasSegmentsArray(uint32_t flags) {
+  return !!(flags & 0x00000001);
+}
+
 Geometry ParseHair(const std::string path) {
   std::ifstream file(path);
   if (!file) {
@@ -126,9 +130,9 @@ Geometry ParseHair(const std::string path) {
   if (!file) {
     THROW_EXCEPTION(std::string("Could not read value from: ") + path);
   }
-  if (flags != 0x00000002) {
+  if (flags & 0xFFFFFFEC) { // bit 0, 1, 4 can be 1b'1
 // FIXME uncomment
-//    THROW_EXCEPTION(std::string("Not supported flags: ") + std::to_string(flags));
+    THROW_EXCEPTION(std::string("Not supported flags: ") + std::to_string(flags));
   }
 
   // read default num of segments in one hair strand
@@ -187,8 +191,21 @@ Geometry ParseHair(const std::string path) {
   double num_cylinders = 0;
   double max_len = 0;
 
-  num_vertices = 10000; // FIXME for debug
+  num_vertices = 1000; // FIXME for debug
 
+  std::vector<unsigned int> segments_array;
+  unsigned int num_strands_read = 0;
+  if (hasSegmentsArray(flags)) {
+    while (file && num_strands_read < num_strands) {
+      uint16_t n;
+      file.read((char *)&n, 2);
+      segments_array.push_back(n);
+      num_strands_read++;
+    }
+  }
+
+  // all hair file must have points array
+  int segments_array_index = 0;
   while (file && num_total_vertices_read < num_vertices) {
     float x, y, z;
     file.read((char *)&x, 4);
@@ -212,8 +229,16 @@ Geometry ParseHair(const std::string path) {
     prev_point = curr_point;
     num_total_vertices_read++;
     num_vertices_read_in_current_strand++;
-    if (num_vertices_read_in_current_strand - 1 >= default_num_segments_in_strand) {
-      num_vertices_read_in_current_strand = 0;
+    if (hasSegmentsArray(flags)) {
+      // has segments array
+      if (num_vertices_read_in_current_strand - 1 >= segments_array[segments_array_index]) {
+        num_vertices_read_in_current_strand = 0;
+        segments_array_index++;
+      }
+    } else {
+      if (num_vertices_read_in_current_strand - 1 >= default_num_segments_in_strand) {
+        num_vertices_read_in_current_strand = 0;
+      }
     }
   }
 //  printf("average length: %f\n", len_avg / num_cylinders);

@@ -1,0 +1,24 @@
+{
+  "bvh-resolution": 2,
+  "bvh-min-objs": 10,
+  "camera": {
+    "size": 0.032,
+    "pixels": [1024, 1024],
+    "fov": 30,
+    "position": [0, -180, 0],
+    "look-at": [0, 0, 20],
+    "up": [0, 0, 1],
+    "bg-color": [0, 0, 0.2]
+  },
+  "light": [{
+    "type": 0,
+    "position": [0, -70, 80],
+    "color": [1, 1, 1],
+    "energy": 12566.3706143592
+  }],
+  "geometry": [{
+    "file": "blonde.hair",
+    "material": 4
+  }]
+}
+
