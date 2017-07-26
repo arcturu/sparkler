@@ -237,6 +237,16 @@ Color KajiyaKay(Scene& scene, const Ray& ray, const Intersection& it, double r) 
   return (diffuse + specular) * it.color;
 }
 
+double KajiyaKayDiffuse(const Light& light, const Ray& ray, const Intersection& it) {
+  double diffuse = 0;
+  // Diffuse
+  double d = 1 - pow(it.tan.dot((light.p - it.p).normalize()), 2);
+  if (d > 0) {
+    diffuse = diffuse + sqrt(d);
+  }
+  return diffuse;
+}
+
 class CyclicAngle {
  private:
   double r; // in radian
@@ -532,10 +542,11 @@ Color shade(Scene& scene, const Ray& ray, const Intersection& it, unsigned int t
     {
       pix = Color();
       for (const auto& light : scene.lights) {
-        Color tmp = getMarschnerScatter(light, ray, it) * getIrradianceSingle(scene, light, it) * it.color;
+        Color irr = getIrradianceSingle(scene, light, it);
+        Color tmp = getMarschnerScatter(light, ray, it) * irr * it.color;
   //      printf("%f %f %f\n", tmp.r, tmp.g, tmp.b);
         // TODO super ad-hoc constant is used
-        pix = pix + tmp;
+        pix = pix + tmp + KajiyaKayDiffuse(light, ray, it) * irr * it.color;
       }
     }
 //    {
