@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 #include <iostream>
 #include <cmath>
 #include <limits>
@@ -146,27 +147,33 @@ Intersection Geometry::intersectNaive(const Ray& ray) const {
     }
   }
 
+  if (it.hit) {
+    it.material = material;
+    it.eta = eta;
+    it.color = Color(1, 1, 1);
+  }
   return it;
 }
 
 
 Intersection Geometry::intersect(const Ray& ray) const {
-  Intersection it;// = root->traverseLoop(ray);
-//  if (it.hit) {
-//    it.material = material;
-//    it.eta = eta;
-//  }
-
-  Intersection it2 = obj_root->traverse(ray, std::numeric_limits<double>::infinity());
-  if (it2.hit && (!it.hit || it2.t < it.t)) {
-    it = it2;
+  Intersection it = root->traverseLoop(ray);
+  if (it.hit) {
+    it.material = material;
+    it.eta = eta;
+    it.color = Color(1, 1, 1);
   }
-//  for (auto& obj : objects) {
-//    Intersection it2 = obj->intersect(ray);
-//    if (it2.hit && (!it.hit || it2.t < it.t)) {
-//      it = it2;
-//    }
+
+//  Intersection it2 = obj_root->traverse(ray, std::numeric_limits<double>::infinity());
+//  if (it2.hit && (!it.hit || it2.t < it.t)) {
+//    it = it2;
 //  }
+  for (auto& obj : objects) {
+    Intersection it2 = obj->intersect(ray);
+    if (it2.hit && (!it.hit || it2.t < it.t)) {
+      it = it2;
+    }
+  }
   return it;
 }
 

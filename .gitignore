@@ -5,3 +5,6 @@ out.ppm
 *.dtps
 log
 *.pfm
+objs
+.vs
+x64
